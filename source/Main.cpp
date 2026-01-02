@@ -10,7 +10,7 @@
 #define WINDOW_N "QUADTREE ASTAR"
 
 
-std::vector<QuadtreeLeaf> groupQuads;
+std::vector<Quadrant> groupQuads;
 
 
 // Main loop initialization
@@ -19,7 +19,6 @@ void Init() {
     SetTargetFPS(60);
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
 
-    groupQuads.emplace_back(0, 0, WINDOW_W, WINDOW_H, 0);
 }
 
 
@@ -43,7 +42,7 @@ void Draw() {
     DrawFPS(0, 0);
 
     // Draw
-    for (QuadtreeLeaf quad : groupQuads) {
+    for (Quadrant quad : groupQuads) {
         Renderer::DrawQuadrant(quad);
     }
 

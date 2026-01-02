@@ -5,6 +5,7 @@ project(QuadtreeAstar LANGUAGES C CXX)
 
 # ------------------ Compile with GUI ------------------ #
 find_package(raylib)
+find_package(OpenCV)
 add_executable(QuadtreeAstar)
 
 target_include_directories(QuadtreeAstar PUBLIC include)
@@ -12,7 +13,7 @@ target_include_directories(QuadtreeAstar PUBLIC include)
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-target_link_libraries(QuadtreeAstar raylib)
+target_link_libraries(QuadtreeAstar raylib opencv)
 target_compile_options(QuadtreeAstar PRIVATE -O3)
 
 

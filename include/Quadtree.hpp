@@ -1,7 +1,8 @@
 #pragma once
 
-#include "IntVector2.hpp"
 #include <cstdint>
+#include <unordered_map>
+#include <vector>
 
 /**
  * Implementation of Linear Quadtree with Level Differences from
@@ -21,34 +22,40 @@
 /**
  * The leafs of the quadtree
  */
-class QuadtreeLeaf {
+class Quadrant {
 public:
-    QuadtreeLeaf(const IntVector2& pos, const IntVector2& dim, uint64_t locationCode);
-    QuadtreeLeaf(int x, int y, int width, int height, uint64_t locationCode);
+    Quadrant(int x, int y, int width, int height, uint64_t locationCode, int level);
 
-    int getX() const {
+    int GetX() const {
         return bbox[0];
     };
 
-    int getY() const {
+    int GetY() const {
         return bbox[1];
     };
 
-    int getWidth() const {
+    int GetWidth() const {
         return bbox[2];
     };
 
-    int getHeight() const {
+    int GetHeight() const {
         return bbox[3];
     };
 
+    int GetLevel() const {
+        return level;
+    }
+
+    uint64_t GetCode() const {
+        return locationCode;
+    }
 
 private:
     int bbox[4];
-    int locationCode;
-
-    void Init(int x, int y, int width, int height, uint64_t locationCode);
-
+    int levelDifferences[4];    
+    int level;
+    uint64_t locationCode;
+    
 };
 
 
@@ -56,15 +63,20 @@ class Quadtree {
 public:
     Quadtree(int resolution);
 
-    IntVector2 midpoint(IntVector2 pos1, IntVector2 pos2);
-    uint64_t locationAdd(uint64_t locationCode, uint64_t direction);
-    uint64_t getAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
+    void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
+    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
+    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
+    bool SubdivideCondition(const Quadrant& leaf);
+    void Build(int x, int y, int width, int height);
 
 private:
-
     uint64_t tx;
     uint64_t ty;
 
     int resolution;
 
+    std::vector<Quadrant> leafs;
+    std::unordered_map<uint64_t, size_t> leafIndex;
+
+    std::vector<bool> grid;
 };

@@ -4,5 +4,5 @@
 
 class Renderer {
 public:
-    static void DrawQuadrant(const QuadtreeLeaf& quad);
+    static void DrawQuadrant(const Quadrant& quad);
 };
