@@ -59,15 +59,21 @@ private:
 };
 
 
+enum REGION {
+    UNDECIDED,  // Undecided
+    VALID,  // Valid region (a node on a graph)
+    BLOCK   // Blocked region
+};
+
+
 class Quadtree {
 public:
     Quadtree(int resolution);
-
-    void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
-    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
-    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
-    bool SubdivideCondition(const Quadrant& leaf);
-    void Build(int x, int y, int width, int height);
+    void Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight);
+    
+    const std::vector<Quadrant>& GetLeafs() const {
+        return leafs;
+    }
 
 private:
     uint64_t tx;
@@ -76,7 +82,11 @@ private:
     int resolution;
 
     std::vector<Quadrant> leafs;
+    std::vector<bool> leafsValid;
     std::unordered_map<uint64_t, size_t> leafIndex;
 
-    std::vector<bool> grid;
+    void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
+    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
+    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
+    REGION SubdivideCondition(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth);
 };

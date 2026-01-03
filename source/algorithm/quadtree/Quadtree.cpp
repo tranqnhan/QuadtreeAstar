@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <cstdint>
 #include <cmath>
 #include <raylib.h>
@@ -49,16 +51,40 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 }
 
 
-void Quadtree::Build(int x, int y, int width, int height) {
+REGION Quadtree::SubdivideCondition(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth) {
+    int x = leaf.GetX();
+    int y = leaf.GetY();
+    int width = leaf.GetWidth();
+    int height = leaf.GetHeight();
+
+
+    bool isValid = grid[y * gridWidth + x];
+    std::cout << x << " " << y << " " << width << " h: " << height << isValid << "\n";
+
+    for (int i = y; i < y + height; ++i) {
+        for (int j = x; j < x + width; ++j) {
+            if (grid[i * gridWidth + j] != isValid) {
+                std::cout << j << " " << i << " undecided \n";
+                return REGION::UNDECIDED;
+            }
+        }
+    }
+    std::cout << isValid << " decided \n";
+
+    return isValid ? REGION::VALID : REGION::BLOCK;
+}
+
+
+void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight) {
     std::vector<Quadrant> stack;
-
-    stack.emplace_back(x, y, width, height, 0, 0);
-
+    int x, y;
+    int width, height;
     int midX, midY;
-
     uint64_t locationCode;
     int level;
-    
+
+    stack.emplace_back(0, 0, gridWidth, gridHeight, 0, 0);
+
     while(stack.size() > 0) {
         Quadrant leaf = stack[stack.size() - 1];
         stack.pop_back();
@@ -70,7 +96,9 @@ void Quadtree::Build(int x, int y, int width, int height) {
 
         this->SubdivideRect(midX, midY, width, height, x, y);
 
-        if (this->SubdivideCondition(leaf)) {
+        REGION result = this->SubdivideCondition(leaf, grid, gridWidth);
+
+        if (result == REGION::UNDECIDED && leaf.GetLevel() < this->resolution) {
             level = leaf.GetLevel() + 1;
             locationCode = std::pow(10, this->resolution - (level - 1));
 
@@ -80,6 +108,7 @@ void Quadtree::Build(int x, int y, int width, int height) {
             stack.emplace_back(x, y, width, height, locationCode * 3, level);
         } else {
             this->leafs.emplace_back(std::move(leaf));
+            this->leafsValid.emplace_back(result == REGION::VALID);
             this->leafIndex[leaf.GetCode()] = this->leafs.size() - 1;
         }
     }
