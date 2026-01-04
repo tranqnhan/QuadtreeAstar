@@ -19,6 +19,7 @@
 #define DIR_SW 0x111111 // southwest neighbor
 #define DIR_SE 0x101011 // southeast neighbor
 
+
 /**
  * The leafs of the quadtree
  */
@@ -59,13 +60,6 @@ private:
 };
 
 
-enum REGION {
-    UNDECIDED,  // Undecided
-    VALID,  // Valid region (a node on a graph)
-    BLOCK   // Blocked region
-};
-
-
 class Quadtree {
 public:
     Quadtree(int resolution);
@@ -88,5 +82,5 @@ private:
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
-    REGION SubdivideCondition(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth);
+    int CheckRegion(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth);
 };

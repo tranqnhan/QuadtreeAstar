@@ -51,27 +51,22 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 }
 
 
-REGION Quadtree::SubdivideCondition(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth) {
+// Returns 1 if block; 0 if valid
+int Quadtree::CheckRegion(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth) {
     int x = leaf.GetX();
     int y = leaf.GetY();
     int width = leaf.GetWidth();
     int height = leaf.GetHeight();
 
-
-    bool isValid = grid[y * gridWidth + x];
-    std::cout << x << " " << y << " " << width << " h: " << height << isValid << "\n";
-
-    for (int i = y; i < y + height; ++i) {
-        for (int j = x; j < x + width; ++j) {
-            if (grid[i * gridWidth + j] != isValid) {
-                std::cout << j << " " << i << " undecided \n";
-                return REGION::UNDECIDED;
+    for (int i = y; i < y + width; ++i) {
+        for (int j = x; j < x + height; ++j) {
+            if (grid[i * gridWidth + j] == 0) {
+                return 1;
             }
         }
     }
-    std::cout << isValid << " decided \n";
 
-    return isValid ? REGION::VALID : REGION::BLOCK;
+    return 0;
 }
 
 
@@ -79,9 +74,9 @@ void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const i
     std::vector<Quadrant> stack;
     int x, y;
     int width, height;
-    int midX, midY;
     uint64_t locationCode;
     int level;
+    int midX, midY;
 
     stack.emplace_back(0, 0, gridWidth, gridHeight, 0, 0);
 
@@ -96,9 +91,9 @@ void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const i
 
         this->SubdivideRect(midX, midY, width, height, x, y);
 
-        REGION result = this->SubdivideCondition(leaf, grid, gridWidth);
+        int result = this->CheckRegion(leaf, grid, gridWidth);
 
-        if (result == REGION::UNDECIDED && leaf.GetLevel() < this->resolution) {
+        if (leaf.GetLevel() < this->resolution) {
             level = leaf.GetLevel() + 1;
             locationCode = std::pow(10, this->resolution - (level - 1));
 
