@@ -83,4 +83,6 @@ private:
     uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
     int CheckRegion(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth);
+    uint64_t Interleave(uint32_t x, uint32_t y);
+
 };
