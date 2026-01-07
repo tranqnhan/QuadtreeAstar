@@ -52,24 +52,49 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 }
 
 
-// Returns 1 if block; 0 if valid
-int Quadtree::CheckRegion(const Quadrant& leaf, const std::vector<bool>& grid, const int gridWidth) {
-    int x = leaf.GetX();
-    int y = leaf.GetY();
-    int width = leaf.GetWidth();
-    int height = leaf.GetHeight();
-
-    for (int i = y; i < y + width; ++i) {
-        for (int j = x; j < x + height; ++j) {
-            if (grid[i * gridWidth + j] == 0) {
-                return 1;
-            }
-        }
+Region Quadtree::BuildRegion(const std::vector<bool>& grid, const int gridWidth, const int x, const int y, const int width, const int height) {
+    if (width <= 1) {
+        return grid[y * gridWidth + x] ? Region::Block : Region::Valid;
     }
 
-    return 0;
+    int midX, midY;
+    int childWidth = width;
+    int childHeight = height;
+    this->SubdivideRect(midX, midY, childWidth, childHeight, x, y);
+
+    constexpr int numRegions = 4;
+
+    Region regionStatus[numRegions];
+    const int pos[8] = {x, midY, midX, midY, midX, y, x, y};
+
+    regionStatus[0] = this->BuildRegion(grid, gridWidth, pos[0], pos[1], childWidth, childHeight);
+    regionStatus[1] = this->BuildRegion(grid, gridWidth, pos[2], pos[3], childWidth, childHeight);
+    regionStatus[2] = this->BuildRegion(grid, gridWidth, pos[4], pos[5], childWidth, childHeight);
+    regionStatus[3] = this->BuildRegion(grid, gridWidth, pos[6], pos[7], childWidth, childHeight);
+
+    if (regionStatus[0] != regionStatus[1] ||
+        regionStatus[0] != regionStatus[2] ||
+        regionStatus[0] != regionStatus[3] ||
+        regionStatus[0] == Region::Mixed) {
+        for (int i = 0; i < numRegions; ++i) {
+            if (regionStatus[i] != Region::Mixed) {
+                // TODO: add locationCode and level and color
+                this->leafs.emplace_back(pos[2 * i], pos[2 * i + 1], childWidth, childHeight, 0, 0);
+            }
+        }
+        return Region::Mixed;
+    }
+
+    return regionStatus[0];
 }
 
+
+void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight) {
+    Region region = Quadtree::BuildRegion(grid, gridWidth, 0, 0, gridWidth, gridHeight);
+    if (region != Region::Mixed) {
+        this->leafs.emplace_back(0, 0, gridWidth, gridHeight, 0, 0);
+    }
+}
 
 // void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight) {
 //     std::vector<Quadrant> stack;
@@ -120,16 +145,4 @@ uint64_t Quadtree::Interleave(uint32_t x, uint32_t y) {
         x <<= 1; y <<= 1;
     }
     return val;
-}
-
-void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight) {
-
-    uint32_t x = 11;
-    uint32_t y = 11;
-
-    uint64_t res = Interleave(x, y);
-
-    printf("x = %b\ny = %b \nval = %lb\n", x, y, res);
-
-    exit(1);
 }
