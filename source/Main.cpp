@@ -1,14 +1,9 @@
 #include <raylib.h>
 
+#include "Program.hpp"
 #include "GridEnvironment.hpp"
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
-
-
-#define WINDOW_W 512
-#define WINDOW_H 512
-#define WINDOW_N "QUADTREE ASTAR"
-
 
 Quadtree quadtree(3);
 
@@ -18,10 +13,12 @@ Texture2D texture;
 // Main loop initialization
 void Init() {
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    SetTargetFPS(60);
+    //SetTargetFPS(30);
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
     
-    image = LoadImage("../assets/test.png");
+    Renderer::Init();
+
+    image = LoadImage("../assets/test2.png");
 
     GridEnvironment grid(image.width, image.height);
 
@@ -34,6 +31,8 @@ void Init() {
 
 
     quadtree.Build(grid);
+    Renderer::UpdateQuadtreeLeafs(quadtree);
+
 }
 
 
@@ -51,17 +50,17 @@ void Input() {
 
 // Main loop draw
 void Draw() {
+
     BeginDrawing();
     ClearBackground(BLACK);
-
-    DrawFPS(0, 0);
 
     // Draw
     DrawTexture(texture, 0, 0, WHITE);
 
-    Renderer::DrawQuadtreeLeafs(quadtree);
+    Renderer::DrawQuadtreeLeafs();
 
-
+    DrawRectangle(0, 0, 100, 25, BLACK);
+    DrawFPS(0, 0);
     EndDrawing();
 }
 
