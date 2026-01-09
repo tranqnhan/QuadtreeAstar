@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Quadtree.hpp"
+#include "GridEnvironment.hpp"
 
 // Quadtree Leaf
 Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, int level) {
@@ -52,9 +53,9 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 }
 
 
-Region Quadtree::BuildRegion(const std::vector<bool>& grid, const int gridWidth, const int x, const int y, const int width, const int height) {
+Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
     if (width <= 1) {
-        return grid[y * gridWidth + x] ? Region::Block : Region::Valid;
+        return grid.IsValid(y * grid.GetWidth() + x) ? Region::Block : Region::Valid;
     }
 
     int midX, midY;
@@ -67,10 +68,10 @@ Region Quadtree::BuildRegion(const std::vector<bool>& grid, const int gridWidth,
     Region regionStatus[numRegions];
     const int pos[8] = {x, midY, midX, midY, midX, y, x, y};
 
-    regionStatus[0] = this->BuildRegion(grid, gridWidth, pos[0], pos[1], childWidth, childHeight);
-    regionStatus[1] = this->BuildRegion(grid, gridWidth, pos[2], pos[3], childWidth, childHeight);
-    regionStatus[2] = this->BuildRegion(grid, gridWidth, pos[4], pos[5], childWidth, childHeight);
-    regionStatus[3] = this->BuildRegion(grid, gridWidth, pos[6], pos[7], childWidth, childHeight);
+    regionStatus[0] = this->BuildRegion(grid, pos[0], pos[1], childWidth, childHeight);
+    regionStatus[1] = this->BuildRegion(grid, pos[2], pos[3], childWidth, childHeight);
+    regionStatus[2] = this->BuildRegion(grid, pos[4], pos[5], childWidth, childHeight);
+    regionStatus[3] = this->BuildRegion(grid, pos[6], pos[7], childWidth, childHeight);
 
     if (regionStatus[0] != regionStatus[1] ||
         regionStatus[0] != regionStatus[2] ||
@@ -89,10 +90,10 @@ Region Quadtree::BuildRegion(const std::vector<bool>& grid, const int gridWidth,
 }
 
 
-void Quadtree::Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight) {
-    Region region = Quadtree::BuildRegion(grid, gridWidth, 0, 0, gridWidth, gridHeight);
+void Quadtree::Build(const GridEnvironment& grid) {
+    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight());
     if (region != Region::Mixed) {
-        this->leafs.emplace_back(0, 0, gridWidth, gridHeight, 0, 0);
+        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
     }
 }
 

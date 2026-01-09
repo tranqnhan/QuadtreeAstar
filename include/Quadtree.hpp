@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GridEnvironment.hpp"
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
@@ -70,7 +71,7 @@ enum Region {
 class Quadtree {
 public:
     Quadtree(int resolution);
-    void Build(const std::vector<bool>& grid, const int gridWidth, const int gridHeight);
+    void Build(const GridEnvironment& grid);
     
     const std::vector<Quadrant>& GetLeafs() const {
         return leafs;
@@ -89,6 +90,6 @@ private:
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
-    Region BuildRegion(const std::vector<bool>& grid, const int gridWidth, const int x, const int y, const int width, const int height);
+    Region BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     uint64_t Interleave(uint32_t x, uint32_t y);
 };

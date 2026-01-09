@@ -1,7 +1,6 @@
 #include <raylib.h>
-#include <vector>
-#include <iostream>
 
+#include "GridEnvironment.hpp"
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
@@ -12,6 +11,7 @@
 
 
 Quadtree quadtree(3);
+
 Image image;
 Texture2D texture;
 
@@ -22,17 +22,18 @@ void Init() {
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
     
     image = LoadImage("../assets/test.png");
-    
+
+    GridEnvironment grid(image.width, image.height);
+
     Color *pixels = LoadImageColors(image);
-    std::vector<bool> valid(image.width * image.height);
     for (int i = 0; i < image.width * image.height; ++i) {
-        valid[i] = pixels[i].b == 255;
+        grid.SetValid(i, pixels[i].b == 255);
     }
 
     texture = LoadTextureFromImage(image);
 
 
-    quadtree.Build(valid, image.width, image.height);
+    quadtree.Build(grid);
 }
 
 
