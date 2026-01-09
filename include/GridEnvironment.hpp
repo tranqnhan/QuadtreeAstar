@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <vector>
 
-#include <iostream>
 
 class GridEnvironment {
 
@@ -25,7 +24,6 @@ public:
         if (i < grid.size()) {
             return grid[i];
         }
-        std::cout << i << std::endl;
         return false;
     }
 
