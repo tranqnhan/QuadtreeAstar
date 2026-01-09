@@ -1,8 +1,5 @@
-#include <iostream>
 
-#include <cstdlib>
 #include <cstdint>
-#include <cmath>
 #include <raylib.h>
 #include <sys/types.h>
 #include <vector>
@@ -53,9 +50,45 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 }
 
 
+// Check if there is a border of invalids
+bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
+    for (int i = x; i < x + width; ++i) {
+        if (grid.IsValid(y * grid.GetWidth() + i)) {
+            return false;
+        }
+    }
+
+    for (int i = x; i < x + width; ++i) {
+        if (grid.IsValid((y + height - 1) * grid.GetWidth() + i)) {
+            return false;
+        }
+    }
+
+    for (int i = y; i < y + height; ++i) {
+        if (grid.IsValid(i * grid.GetWidth() + x)) {
+            return false;
+        }
+    }
+
+    for (int i = y; i < y + height; ++i) {
+        if (grid.IsValid(i * grid.GetWidth() + (x + width - 1))) {
+            return false;
+        }
+    }
+
+
+    return true;
+}
+
+
 Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
     if (width <= 1) {
         return grid.IsValid(y * grid.GetWidth() + x) ? Region::Block : Region::Valid;
+    }
+
+    if (this->BorderCheck(grid, x, y, width, height)) {
+        // TODO: check if the region is covering the start / end
+        return Region::Block;
     }
 
     int midX, midY;

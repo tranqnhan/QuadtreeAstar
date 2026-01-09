@@ -13,7 +13,7 @@ Texture2D texture;
 // Main loop initialization
 void Init() {
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    //SetTargetFPS(30);
+    SetTargetFPS(30);
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
     
     Renderer::Init();
@@ -24,7 +24,7 @@ void Init() {
 
     Color *pixels = LoadImageColors(image);
     for (int i = 0; i < image.width * image.height; ++i) {
-        grid.SetValid(i, pixels[i].b == 255);
+        grid.SetValid(i, pixels[i].b > 0);
     }
 
     texture = LoadTextureFromImage(image);
