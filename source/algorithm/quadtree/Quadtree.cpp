@@ -52,26 +52,29 @@ uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction
 
 // Check if there is a border of invalids
 bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
-    for (int i = x; i < x + width; ++i) {
+    const int xbound = x + width;
+    const int ybound = y + height;
+
+    for (int i = x; i < xbound; ++i) {
         if (grid.IsValid(y * grid.GetWidth() + i)) {
             return false;
         }
     }
 
-    for (int i = x; i < x + width; ++i) {
-        if (grid.IsValid((y + height - 1) * grid.GetWidth() + i)) {
+    for (int i = x; i < xbound; ++i) {
+        if (grid.IsValid((ybound - 1) * grid.GetWidth() + i)) {
             return false;
         }
     }
 
-    for (int i = y; i < y + height; ++i) {
+    for (int i = y; i < ybound; ++i) {
         if (grid.IsValid(i * grid.GetWidth() + x)) {
             return false;
         }
     }
 
     for (int i = y; i < y + height; ++i) {
-        if (grid.IsValid(i * grid.GetWidth() + (x + width - 1))) {
+        if (grid.IsValid(i * grid.GetWidth() + (xbound - 1))) {
             return false;
         }
     }

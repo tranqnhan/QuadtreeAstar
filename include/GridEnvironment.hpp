@@ -15,13 +15,13 @@ public:
     }
 
     void SetValid(int i, bool isValid) {
-        if (i < grid.size()) {
+        if (i < grid.size()) [[likely]] {
             grid[i] = isValid;
         }
     }
 
     const bool IsValid(int i) const {
-        if (i < grid.size()) {
+        if (i < grid.size()) [[likely]] {
             return grid[i];
         }
         return false;
