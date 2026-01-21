@@ -86,7 +86,7 @@ bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y
 }
 
 
-Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
+Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
     if (width <= 1) {
         return grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
     }
@@ -104,26 +104,26 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
     constexpr int numRegions = 4;
 
     Region regionStatus[numRegions];
-    const int pos[8] = {x, midY, midX, midY, midX, y, x, y};
+    const int pos[8] = {x, midY, midX, midY, x, y, midX, y};
 
-    regionStatus[0] = this->BuildRegion(grid, pos[0], pos[1], childWidth, childHeight);
-    regionStatus[1] = this->BuildRegion(grid, pos[2], pos[3], childWidth, childHeight);
-    regionStatus[2] = this->BuildRegion(grid, pos[4], pos[5], childWidth, childHeight);
-    regionStatus[3] = this->BuildRegion(grid, pos[6], pos[7], childWidth, childHeight);
+    regionStatus[0] = this->BuildRegion(grid, pos[0], pos[1], childWidth, childHeight, locationCode * 10, level + 1);
+    regionStatus[1] = this->BuildRegion(grid, pos[2], pos[3], childWidth, childHeight, locationCode * 10 + 1, level + 1);
+    regionStatus[2] = this->BuildRegion(grid, pos[4], pos[5], childWidth, childHeight, locationCode * 10 + 2, level + 1);
+    regionStatus[3] = this->BuildRegion(grid, pos[6], pos[7], childWidth, childHeight, locationCode * 10 + 3, level + 1);
     
     if (regionStatus[0] != regionStatus[1] ||
         regionStatus[0] != regionStatus[2] ||
         regionStatus[0] != regionStatus[3] ||
         regionStatus[0] == Region::Mixed) {
         for (int i = 0; i < numRegions; ++i) {
-            if (regionStatus[i] != Region::Mixed) {
+            if (regionStatus[i] == Region::Valid) {
                 // TODO: add locationCode and level and color
                 this->leafs.emplace_back(
                     pos[2 * i], pos[2 * i + 1], 
                     childWidth, 
                     childHeight,
-                    0,
-                    0);
+                    locationCode * 10 + i,
+                    level);
             }
         }
         return Region::Mixed;
@@ -134,7 +134,7 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
 
 
 void Quadtree::Build(const GridEnvironment& grid) {
-    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight());
+    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
     
     if (region != Region::Mixed) {
         this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);

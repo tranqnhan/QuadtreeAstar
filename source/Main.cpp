@@ -5,7 +5,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(3);
+Quadtree quadtree(5);
 
 Image image;
 Texture2D texture;
@@ -18,7 +18,7 @@ void Init() {
     
     Renderer::Init();
 
-    image = LoadImage("../assets/test2.png");
+    image = LoadImage("../assets/test.png");
 
     GridEnvironment grid(image.width, image.height);
 
