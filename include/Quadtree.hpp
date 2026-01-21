@@ -86,7 +86,7 @@ private:
     std::vector<Quadrant> leafs;
     std::vector<bool> leafsValid;
     std::unordered_map<uint64_t, size_t> leafIndex;
-
+    
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
