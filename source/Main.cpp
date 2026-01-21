@@ -5,7 +5,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(5);
+Quadtree quadtree(3);
 
 Image image;
 Texture2D texture;

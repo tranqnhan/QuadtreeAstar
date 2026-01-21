@@ -122,8 +122,9 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
                     pos[2 * i], pos[2 * i + 1], 
                     childWidth, 
                     childHeight,
-                    locationCode * 10 + i,
+                    (locationCode * 10 + i) * std::pow(10, (this->resolution - level)),
                     level);
+                std::cout << (locationCode * 10 + i) * std::pow(10, (this->resolution - level - 1)) << std::endl;
             }
         }
         return Region::Mixed;
