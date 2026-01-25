@@ -87,11 +87,14 @@ private:
     std::vector<bool> leafsValid;
     std::unordered_map<uint64_t, size_t> leafIndex;
     
+    bool ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
     Region BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height, uint64_t locationCode, int level);
-    uint64_t Interleave(uint32_t x, uint32_t y);
     bool BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
+    uint64_t Interleave(const uint32_t& x, const uint32_t& y) const;
+    uint64_t InterleaveZero(const uint32_t& input) const;
+
 
 };

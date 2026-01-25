@@ -1,3 +1,6 @@
+#include <chrono>
+#include <iostream>
+
 #include <raylib.h>
 
 #include "Program.hpp"
@@ -5,7 +8,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(3);
+Quadtree quadtree(32);
 
 Image image;
 Texture2D texture;
@@ -13,12 +16,13 @@ Texture2D texture;
 // Main loop initialization
 void Init() {
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+    SetTraceLogLevel(LOG_ERROR); 
     SetTargetFPS(30);
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
     
     Renderer::Init();
 
-    image = LoadImage("../assets/test.png");
+    image = LoadImage("../assets/test5.png");
 
     GridEnvironment grid(image.width, image.height);
 
@@ -30,7 +34,14 @@ void Init() {
     texture = LoadTextureFromImage(image);
 
 
+    auto start = std::chrono::high_resolution_clock::now();
     quadtree.Build(grid);
+    auto stop = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+    std::cout << duration.count() << std::endl;
+
     Renderer::UpdateQuadtreeLeafs(quadtree);
 
 }
