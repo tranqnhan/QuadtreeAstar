@@ -1,8 +1,12 @@
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cmath>
+#include <cstdio>
 #include <vector>
 #include <iostream>
+#include <stdio.h>
 
 #include <raylib.h>
 
@@ -163,50 +167,62 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
 //    
 //}
 
+
+
 void Quadtree::Build(const GridEnvironment& grid) {
-    std::vector<Quadrant> stack;
-    int x, y;
-    int width, height;
-    uint64_t locationCode;
-    int level;
-    int midX, midY;
+    const char numQuads = 4;
+    const size_t size = grid.GetWidth() * grid.GetHeight();
 
-    stack.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
-
-    while(stack.size() > 0) {
-        Quadrant leaf = stack[stack.size() - 1];
-        stack.pop_back();
-        
-        x = leaf.GetX();
-        y = leaf.GetY();
-        width = leaf.GetWidth();
-        height = leaf.GetHeight();
-        
-        if (this->BorderCheck(grid, x, y, width, height)) {
-            continue;
-        }
-        
-
-        if (this->ScanCheck(grid, x, y, width, height)) {
-            locationCode = leaf.GetCode() * std::pow(10, (this->resolution - leaf.GetLevel()));
-            this->leafs.emplace_back(x, y, width, height, locationCode, leaf.GetLevel());
-            continue;
-        }
-
-        this->SubdivideRect(midX, midY, width, height, x, y);
-
-
-        if (leaf.GetLevel() < this->resolution) {
-            level = leaf.GetLevel() + 1;
-            locationCode = leaf.GetCode() * 10;
-
-            stack.emplace_back(x, midY, width, height, locationCode, level);
-            stack.emplace_back(midX, midY, width, height, locationCode + 1, level);
-            stack.emplace_back(x, y, width, height, locationCode + 2, level);
-            stack.emplace_back(midX, y, width, height, locationCode + 3, level);
-        }
-    }
+    // TODO: replace with a calculated the bounds of this
+    std::vector<bool> stack(size);
+    std::vector<uint32_t> bounds(size * numQuads);
     
+    int head = 0;
+    
+    uint64_t x, y;
+    bool valid;
+
+    for (uint64_t z = 0; z < size; z += numQuads) {
+        for (char i = 0; i < numQuads; ++i) {
+            this->Deinterleave(z + i, x, y);
+
+            bounds[head * numQuads + 0] = x;
+            bounds[head * numQuads + 1] = y;
+            bounds[head * numQuads + 2] = 1;
+            bounds[head * numQuads + 3] = 1;
+            
+            stack[head++] = grid.IsValid(y * grid.GetWidth() + x);
+        }
+
+        do {
+            head -= numQuads;
+            valid = true;
+            for (char j = 0; j < numQuads; ++j) {
+                if (!stack[head + j]) {
+                    valid = false;
+
+                    // TODO: Room for optimization here
+                    for (char k = 0; k < numQuads; ++k) {
+                        if (stack[head + k]) {
+                            this->leafs.emplace_back(
+                                bounds[(head + k) * numQuads + 0], 
+                                bounds[(head + k) * numQuads + 1],
+                                bounds[(head + k) * numQuads + 2],
+                                bounds[(head + k) * numQuads + 3],
+                                0, 0);
+                        }
+                    }
+
+                    break; 
+                }
+            }
+
+            bounds[head * numQuads + 2] *= 2;
+            bounds[head * numQuads + 3] *= 2;
+
+            stack[head++] = valid;
+        } while (head >= 4 && bounds[(head - 1) * numQuads + 2] == bounds[(head - 4) * numQuads + 2]);
+    }
 }
 
 
@@ -215,7 +231,7 @@ void Quadtree::Build(const GridEnvironment& grid) {
     How fast can you bit-interleave 32-bit integers?
 */
 
-uint64_t Quadtree::InterleaveZero(const uint32_t& input) const {
+uint64_t Quadtree::InterleaveZero(uint32_t input) const {
     uint64_t word = input;
     word = (word ^ (word << 16)) & 0x0000ffff0000ffff;
     word = (word ^ (word << 8 )) & 0x00ff00ff00ff00ff;
@@ -226,7 +242,22 @@ uint64_t Quadtree::InterleaveZero(const uint32_t& input) const {
 }
 
 
-uint64_t Quadtree::Interleave(const uint32_t& x, const uint32_t& y) const {
+uint64_t Quadtree::Interleave(uint32_t x, uint32_t y) const {
     return this->InterleaveZero(x) | (this->InterleaveZero(y) << 1);
 }
+
+void Quadtree::Deinterleave(uint64_t z, uint64_t& x, uint64_t& y) const {
+    x = z & 0x5555555555555555;
+    x = (x | (x >> 1)) & 0x3333333333333333;
+    x = (x | (x >> 2)) & 0x0f0f0f0f0f0f0f0f;
+    x = (x | (x >> 4)) & 0x00ff00ff00ff00ff;
+    x = (x | (x >> 8)) & 0x0000ffff0000ffff;
+
+    y = (z >> 1) & 0x5555555555555555;
+    y = (y | (y >> 1)) & 0x3333333333333333;
+    y = (y | (y >> 2)) & 0x0f0f0f0f0f0f0f0f;
+    y = (y | (y >> 4)) & 0x00ff00ff00ff00ff;
+    y = (y | (y >> 8)) & 0x0000ffff0000ffff;
+}
+
 

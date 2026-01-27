@@ -22,7 +22,7 @@ void Init() {
     
     Renderer::Init();
 
-    image = LoadImage("../assets/test5.png");
+    image = LoadImage("../assets/test1.png");
 
     GridEnvironment grid(image.width, image.height);
 
