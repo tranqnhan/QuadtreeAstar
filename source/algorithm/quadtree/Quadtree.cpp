@@ -229,6 +229,8 @@ void Quadtree::Build(const GridEnvironment& grid) {
 /**
     Interleaving Algorithm from Daniel Lemire's blog
     How fast can you bit-interleave 32-bit integers?
+    and
+    https://stackoverflow.com/questions/4909263/how-to-efficiently-de-interleave-bits-inverse-morton
 */
 
 uint64_t Quadtree::InterleaveZero(uint32_t input) const {
