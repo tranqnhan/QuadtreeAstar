@@ -1,12 +1,6 @@
-
-#include <array>
-#include <cstddef>
 #include <cstdint>
 #include <cmath>
-#include <cstdio>
 #include <vector>
-#include <iostream>
-#include <stdio.h>
 
 #include <raylib.h>
 
@@ -44,15 +38,20 @@ void Quadtree::SubdivideRect(int& midX, int& midY, int& width, int &height, int 
 }
 
 
-uint64_t Quadtree::LocationAdd(uint64_t locationCode, uint64_t direction) {
+uint64_t Quadtree::LocationAdd(uint64_t locationCode, uint64_t direction) const {
     return 
         (((locationCode | this->ty) + (direction & this->tx)) & this->tx) | 
         (((locationCode | this->tx) + (direction & this->ty)) & this->ty);
 }
 
 
-uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level) {
-    return this->LocationAdd(locationCode, direction << (2 * (resolution - level)));
+uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int levelDiff, int level) const {
+    if (levelDiff < 0) {
+        int shiftBy = 2 * (resolution - level - levelDiff);
+        return this->LocationAdd((locationCode >> levelDiff) << levelDiff, direction << levelDiff);
+    } else {
+        return this->LocationAdd(locationCode, direction << (2 * (resolution - level)));
+    }
 }
 
 
@@ -108,7 +107,7 @@ bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y
 
 
 Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
-    if (width <= 1) {
+    if (width == 1) {
         return grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
     }
 
@@ -142,7 +141,6 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
         regionStatus[0] != regionStatus[3]) {
         for (int i = 0; i < numRegions; ++i) {
             if (regionStatus[i] == Region::Valid) {
-                // TODO: add locationCode and level and color
                 this->leafs.emplace_back(
                     pos[2 * i], pos[2 * i + 1], 
                     childWidth, 
@@ -158,73 +156,14 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
 }
 
 
-//void Quadtree::Build(const GridEnvironment& grid) {
-//    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
-//    
-//    if (region == Region::Valid) {
-//        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
-//    }
-//    
-//}
-
-
-
 void Quadtree::Build(const GridEnvironment& grid) {
-    const char numQuads = 4;
-    const size_t size = grid.GetWidth() * grid.GetHeight();
-
-    // TODO: replace with a calculated the bounds of this
-    std::vector<bool> stack(size);
-    std::vector<uint32_t> bounds(size * numQuads);
+    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
     
-    int head = 0;
-    
-    uint64_t x, y;
-    bool valid;
-
-    for (uint64_t z = 0; z < size; z += numQuads) {
-        for (char i = 0; i < numQuads; ++i) {
-            this->Deinterleave(z + i, x, y);
-
-            bounds[head * numQuads + 0] = x;
-            bounds[head * numQuads + 1] = y;
-            bounds[head * numQuads + 2] = 1;
-            bounds[head * numQuads + 3] = 1;
-            
-            stack[head++] = grid.IsValid(y * grid.GetWidth() + x);
-        }
-
-        do {
-            head -= numQuads;
-            valid = true;
-            for (char j = 0; j < numQuads; ++j) {
-                if (!stack[head + j]) {
-                    valid = false;
-
-                    // TODO: Room for optimization here
-                    for (char k = 0; k < numQuads; ++k) {
-                        if (stack[head + k]) {
-                            this->leafs.emplace_back(
-                                bounds[(head + k) * numQuads + 0], 
-                                bounds[(head + k) * numQuads + 1],
-                                bounds[(head + k) * numQuads + 2],
-                                bounds[(head + k) * numQuads + 3],
-                                0, 0);
-                        }
-                    }
-
-                    break; 
-                }
-            }
-
-            bounds[head * numQuads + 2] *= 2;
-            bounds[head * numQuads + 3] *= 2;
-
-            stack[head++] = valid;
-        } while (head >= 4 && bounds[(head - 1) * numQuads + 2] == bounds[(head - 4) * numQuads + 2]);
+    if (region == Region::Valid) {
+        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
     }
+    
 }
-
 
 /**
     Interleaving Algorithm from Daniel Lemire's blog

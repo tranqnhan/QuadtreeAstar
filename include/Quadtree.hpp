@@ -89,8 +89,8 @@ private:
     
     bool ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
-    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction);
-    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int level);
+    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction) const;
+    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int levelDiff, int level) const; 
     Region BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height, uint64_t locationCode, int level);
     bool BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     uint64_t Interleave(uint32_t x, uint32_t y) const;
