@@ -1,5 +1,8 @@
 #include <cstdint>
 #include <cmath>
+#include <queue>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <raylib.h>
@@ -106,7 +109,7 @@ bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y
 }
 
 
-Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
+Region Quadtree::BuildRegion(const GridEnvironment& grid, std::unordered_map<uint64_t, int>& leafCodes, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
     if (width == 1) {
         return grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
     }
@@ -130,22 +133,28 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
     Region regionStatus[numRegions];
     const int pos[8] = {x, midY, midX, midY, x, y, midX, y};
 
-    regionStatus[0] = this->BuildRegion(grid, pos[0], pos[1], childWidth, childHeight, locationCode * 10, level + 1);
-    regionStatus[1] = this->BuildRegion(grid, pos[2], pos[3], childWidth, childHeight, locationCode * 10 + 1, level + 1);
-    regionStatus[2] = this->BuildRegion(grid, pos[4], pos[5], childWidth, childHeight, locationCode * 10 + 2, level + 1);
-    regionStatus[3] = this->BuildRegion(grid, pos[6], pos[7], childWidth, childHeight, locationCode * 10 + 3, level + 1);
+    regionStatus[0] = this->BuildRegion(grid, leafCodes, pos[0], pos[1], childWidth, childHeight, locationCode * 10, level + 1);
+    regionStatus[1] = this->BuildRegion(grid, leafCodes, pos[2], pos[3], childWidth, childHeight, locationCode * 10 + 1, level + 1);
+    regionStatus[2] = this->BuildRegion(grid, leafCodes, pos[4], pos[5], childWidth, childHeight, locationCode * 10 + 2, level + 1);
+    regionStatus[3] = this->BuildRegion(grid, leafCodes, pos[6], pos[7], childWidth, childHeight, locationCode * 10 + 3, level + 1);
     
     if (regionStatus[0] == Region::Mixed ||
         regionStatus[0] != regionStatus[1] ||
         regionStatus[0] != regionStatus[2] ||
         regionStatus[0] != regionStatus[3]) {
         for (int i = 0; i < numRegions; ++i) {
+            if (regionStatus[i] == Mixed) continue;
+
+            uint64_t code = (locationCode * 10 + i) * std::pow(10, (this->resolution - level - 1));
+            
+            leafCodes[code] = level;
+
             if (regionStatus[i] == Region::Valid) {
                 this->leafs.emplace_back(
                     pos[2 * i], pos[2 * i + 1], 
                     childWidth, 
                     childHeight,
-                    (locationCode * 10 + i) * std::pow(10, (this->resolution - level - 1)),
+                    code,
                     level);
             }
         }
@@ -157,11 +166,39 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, const int x, const int
 
 
 void Quadtree::Build(const GridEnvironment& grid) {
-    Region region = Quadtree::BuildRegion(grid, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+
+    // Get leafs
+    std::unordered_map<uint64_t, int> leafCodes; // for adjacent level differences
+
+    Region region = Quadtree::BuildRegion(grid, leafCodes, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
     
     if (region == Region::Valid) {
         this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+        return;
     }
+
+    // Adjacent level differences
+    std::queue<QuadrantIdentifier> queues;
+    queues.push({0, 0});
+    
+    QuadrantIdentifier currentId;
+    while (queues.size() > 0) {
+        
+        currentId = queues.front();
+
+        // TODO: 
+
+        if (leafCodes.find(currentId.locationCode * std::pow(10, (this->resolution - currentId.level - 1))) == leafCodes.end() || 
+            leafCodes[currentId.locationCode] == currentId.level) {
+            for (int k = 0; k < 4; ++k) {
+                queues.push({currentId.locationCode * 10 + k, currentId.level});
+            }
+        }
+        
+        // TODO: 
+
+        queues.pop();
+    } 
     
 }
 
