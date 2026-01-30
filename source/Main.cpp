@@ -8,13 +8,13 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(32);
+Quadtree quadtree(20);
 
 Image image;
 Texture2D texture;
 
 // Main loop initialization
-void Init() {
+void Init(char* filename) {
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     SetTraceLogLevel(LOG_ERROR); 
     SetTargetFPS(30);
@@ -22,7 +22,7 @@ void Init() {
     
     Renderer::Init();
 
-    image = LoadImage("../assets/test4.png");
+    image = LoadImage(filename);
 
     GridEnvironment grid(image.width, image.height);
 
@@ -77,8 +77,8 @@ void Draw() {
 
 
 // Main loop
-int main() {
-    Init();
+int main(int argc, char* argv[]) {
+    Init(argv[1]);
 
     while (!WindowShouldClose()) {
         Input();
