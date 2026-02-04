@@ -71,22 +71,22 @@ void Quadtree::IncrementAdjacentQuad(
     int direction,
     int adjacentShift
 ) {
-    static const uint64_t dir[4] = {DIR_S, DIR_N, DIR_W, DIR_E};
 
     if (quad.dir[direction] != 2) {
-        uint64_t adjacentQuadCode = this->GetAdjacentQuadrant(quad.locationCode, dir[direction], adjacentShift);
-        std::printf("par %lb adj %lb direction %i adjs %i\n", quad.locationCode, adjacentQuadCode, direction, adjacentShift);
-        auto adjacentQuad = mapIdentifiers.at(adjacentQuadCode);
+        uint64_t adjacentQuadCode = this->GetAdjacentQuadrant(quad.locationCode, direction, adjacentShift);
+        //std::printf("par %lb adj %lb direction %i adjs %i\n", quad.locationCode, adjacentQuadCode, direction, adjacentShift);
+        auto adjacentQuad = mapIdentifiers.find(adjacentQuadCode);
 
-        if (adjacentQuad.level == quad.level) {
-            adjacentQuad.dir[direction ^ 1]++;
+        if (adjacentQuad != mapIdentifiers.end() && adjacentQuad->second.level == quad.level) {
+            adjacentQuad->second.dir[direction ^ 1]++;
         }
     }
 }
 
 
-uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int shift) const {
-    return this->DialatedIntegerAdd(locationCode, direction << shift);
+uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const {
+    static const uint64_t dir[4] = {DIR_S, DIR_N, DIR_W, DIR_E};
+    return this->DialatedIntegerAdd(locationCode, dir[direction] << shift);
 }
 
 
@@ -242,8 +242,6 @@ void Quadtree::Build(const GridEnvironment& grid) {
         uint64_t leafLocationCode = parentLocationCode;// << (2 * (this->resolution - parentQuadrant.level));
         auto leafLevelIterator = mapLevels.find(leafLocationCode);
 
-        std::printf("parent level: %i\n", parentQuadrant.level);
-
         if (leafLevelIterator == mapLevels.end() 
             || leafLevelIterator->second != parentQuadrant.level) {
             
@@ -267,9 +265,6 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 childQuadrant.dir[(k ^ 3) | 2] = 0;
 
                 mapIdentifiers.insert_or_assign(childLocationCode, childQuadrant);
-
-                printf("%i adjs\n", k);
-                fflush(stdout);
              
                 this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k >> 1, adjacentShift);
                 this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k | 2, adjacentShift);      
@@ -287,21 +282,22 @@ void Quadtree::Build(const GridEnvironment& grid) {
     for (int i = 0; i < this->leafs.size(); ++i) {
         int level = this->leafs[i].GetLevel();
         uint64_t code = this->leafs[i].GetCode();
-        const QuadrantIdentifier& quad = mapIdentifiers.at(code >> (2 * (this->resolution - level)));
+        const QuadrantIdentifier& quad = mapIdentifiers.at(code);
         for (int k = 0; k < 4; ++k) {
             int levelDiffs = quad.dir[k];
+
 
             if (levelDiffs > 0) continue;
 
             if (levelDiffs == 0) {
                 uint64_t adjacentCode = this->GetAdjacentQuadrant(code, k, 2 * (this->resolution - level));
-            
+                
                 auto adjacentIterator = this->leafIndex.find(adjacentCode);
                 if (adjacentIterator == this->leafIndex.end()) continue;
 
                 int adjacentIndex = adjacentIterator->second;
+                std::printf("par %lb %i leveldiff %i adj %lb level %i\n", quad.locationCode, k, levelDiffs, adjacentCode, level);
                 this->graph[i].push_back(adjacentIndex);
-
             } else {
                 //int shift = 2 * (this->resolution - level - levelDiffs);
                 //uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);

@@ -120,7 +120,7 @@ private:
     bool ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
-    uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int shift) const; 
+    uint64_t GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const; 
     Region BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& leafCodes, const int x, const int y, const int width, const int height, uint64_t locationCode, int level);
     bool BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     uint64_t Interleave(uint32_t x, uint32_t y) const;
