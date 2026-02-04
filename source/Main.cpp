@@ -8,7 +8,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(3);
+Quadtree quadtree(32);
 
 Image image;
 Texture2D texture;

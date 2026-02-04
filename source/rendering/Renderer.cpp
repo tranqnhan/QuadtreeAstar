@@ -23,7 +23,6 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
 
     uint64_t code = quad.GetCode();
     std::string codeText = "";
-    std::printf("%lb\n", quad.GetCode());
 
     while (resolution > 0) {
         codeText += std::to_string(code & 3);
@@ -32,7 +31,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     }
     std::reverse(codeText.begin(), codeText.end());
 
-    DrawText(codeText.c_str(), quad.GetX() + 1, quad.GetY(), 12, BLUE);
+    //DrawText(codeText.c_str(), quad.GetX() + 1, quad.GetY(), 12, BLUE);
 }
 
 
@@ -49,7 +48,6 @@ void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
             
         for (int k = 0; k < graph[i].size(); ++k) {
             int adjIndex = graph[i][k];
-            std::printf("neighbor of %i is %i\n", i, adjIndex);
             int x2 = leafs[adjIndex].GetX() + leafs[adjIndex].GetWidth() / 2;
             int y2 = leafs[adjIndex].GetY() + leafs[adjIndex].GetHeight() / 2;
             DrawLine(x1, y1, x2, y2, BLUE);

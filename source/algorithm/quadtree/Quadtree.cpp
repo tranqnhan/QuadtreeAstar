@@ -23,9 +23,18 @@ Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, i
 
 // Quadtree
 Quadtree::Quadtree(int resolution) {
-    this->resolution = resolution > 32 ? 32 : resolution;
-    int push = (32 - resolution) * 2;
-    
+    this->resolution = resolution > 10 ? 10 : resolution;
+    const int push = (32 - resolution) * 2;
+
+    // SOUTH
+    this->dI[0] = this->Interleave(0, (uint32_t)(~0) >> (push / 2));
+    // NORTH
+    this->dI[1] = 0b10;
+    // WEST
+    this->dI[2] = this->Interleave((uint32_t)(~0) >> (push / 2), 0);
+    // EAST
+    this->dI[3] = 0b01;
+
     // tx = 01...0101 “01” repeated r times
     // ty = 10...1010 “10” repeated r times
     this->tx = 0x5555555555555555 >> push;
@@ -74,7 +83,6 @@ void Quadtree::IncrementAdjacentQuad(
 
     if (quad.dir[direction] != 2) {
         uint64_t adjacentQuadCode = this->GetAdjacentQuadrant(quad.locationCode, direction, adjacentShift);
-        //std::printf("par %lb adj %lb direction %i adjs %i\n", quad.locationCode, adjacentQuadCode, direction, adjacentShift);
         auto adjacentQuad = mapIdentifiers.find(adjacentQuadCode);
 
         if (adjacentQuad != mapIdentifiers.end() && adjacentQuad->second.level == quad.level) {
@@ -85,8 +93,7 @@ void Quadtree::IncrementAdjacentQuad(
 
 
 uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const {
-    static const uint64_t dir[4] = {DIR_S, DIR_N, DIR_W, DIR_E};
-    return this->DialatedIntegerAdd(locationCode, dir[direction] << shift);
+    return this->DialatedIntegerAdd(locationCode, this->dI[direction] << shift);
 }
 
 
@@ -296,7 +303,6 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 if (adjacentIterator == this->leafIndex.end()) continue;
 
                 int adjacentIndex = adjacentIterator->second;
-                std::printf("par %lb %i leveldiff %i adj %lb level %i\n", quad.locationCode, k, levelDiffs, adjacentCode, level);
                 this->graph[i].push_back(adjacentIndex);
             } else {
                 int shift = 2 * (this->resolution - level - levelDiffs);
