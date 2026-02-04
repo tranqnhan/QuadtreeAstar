@@ -299,15 +299,15 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 std::printf("par %lb %i leveldiff %i adj %lb level %i\n", quad.locationCode, k, levelDiffs, adjacentCode, level);
                 this->graph[i].push_back(adjacentIndex);
             } else {
-                //int shift = 2 * (this->resolution - level - levelDiffs);
-                //uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);
-                //
-                //auto adjacentIterator = this->leafIndex.find(adjacentCode);
-                //if (adjacentIterator == this->leafIndex.end()) continue;
-                //
-                //int adjacentIndex = adjacentIterator->second;
-                //this->graph[i].push_back(adjacentIndex);
-                //this->graph[adjacentIndex].push_back(i);
+                int shift = 2 * (this->resolution - level - levelDiffs);
+                uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);
+                
+                auto adjacentIterator = this->leafIndex.find(adjacentCode);
+                if (adjacentIterator == this->leafIndex.end()) continue;
+                
+                int adjacentIndex = adjacentIterator->second;
+                this->graph[i].push_back(adjacentIndex);
+                this->graph[adjacentIndex].push_back(i);
             }
         }
     }
