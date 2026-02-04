@@ -13,39 +13,31 @@
  * by Kunio Aizawa and Shojiro Tanaka 
  */
 
-#define DIR_N  0x000010 // north neighbor
-#define DIR_E  0x000001 // east neighbor
-#define DIR_W  0x010101 // west neighbor
-#define DIR_S  0x101010 // south neighbor
-#define DIR_NE 0x000011 // northeast neighbor
-#define DIR_NW 0x010111 // northwest neighbor
-#define DIR_SW 0x111111 // southwest neighbor
-#define DIR_SE 0x101011 // southeast neighbor
+#define DIR_N  0b000010u // north neighbor
+#define DIR_E  0b000001u // east neighbor
+#define DIR_W  0b010101u // west neighbor
+#define DIR_S  0b101010u // south neighbor
 
 
 struct QuadrantIdentifier {
     uint64_t locationCode;
     int level;
+    int dir[4];
 
     QuadrantIdentifier(uint64_t locationCode, int level) : 
         locationCode(locationCode),
         level(level) 
     {}
-};
 
-
-struct QuadrantLevelDiff {
-    int north;
-    int south;
-    int west;
-    int east;
-
-    QuadrantLevelDiff(int north, int south, int east, int west) : 
-        north(north),
-        south(south),
-        east(east),
-        west(west)
-    {}
+    QuadrantIdentifier(uint64_t locationCode, int level, int n, int s, int w, int e) : 
+        locationCode(locationCode),
+        level(level) 
+    {
+        dir[0] = s;
+        dir[1] = n;
+        dir[2] = w;
+        dir[3] = e;
+    }
 };
 
 /**
@@ -104,6 +96,15 @@ public:
         return leafs;
     }
 
+        
+    int GetResolution() const {
+        return resolution;
+    }
+
+    const std::vector<std::vector<int>>& GetGraph() const {
+        return graph;
+    }
+
 private:
     uint64_t tx;
     uint64_t ty;
@@ -112,12 +113,13 @@ private:
     int maxLevel;
 
     std::vector<Quadrant> leafs;
-    std::vector<bool> leafsValid;
-    std::unordered_map<uint64_t, size_t> leafIndex;
+    ankerl::unordered_dense::map<uint64_t, int> leafIndex;
+
+    std::vector<std::vector<int>> graph;
     
     bool ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
     void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
-    uint64_t LocationAdd(uint64_t locationCode, uint64_t direction) const;
+    uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int shift) const; 
     Region BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& leafCodes, const int x, const int y, const int width, const int height, uint64_t locationCode, int level);
     bool BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
@@ -125,6 +127,15 @@ private:
     uint64_t InterleaveZero(uint32_t input) const;
     void Deinterleave(uint64_t z, uint64_t& x, uint64_t& y) const;
     uint64_t Pow10(int n);
+    int GetChildLevelDiff(const QuadrantIdentifier& parent, int dir) const;
+    
+    void IncrementAdjacentQuad(
+        ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier>& mapIdentifiers,
+        const QuadrantIdentifier& quad,
+        int direction,
+        int adjacentShift
+    );
+
 
 
 };

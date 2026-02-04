@@ -1,12 +1,10 @@
 #include <cstdint>
-#include <cstdio>
-#include <cmath>
 
+#include <cstdio>
 #include <queue>
-#include <unordered_map>
-#include <ankerl/unordered_dense.h>
 #include <vector>
 
+#include <ankerl/unordered_dense.h>
 #include <raylib.h>
 
 #include "Quadtree.hpp"
@@ -26,17 +24,18 @@ Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, i
 // Quadtree
 Quadtree::Quadtree(int resolution) {
     this->resolution = resolution > 19 ? 19 : resolution;
-    int push = (18 - resolution) * 2;
+    int push = (32 - resolution) * 2;
     
     // tx = 01...0101 “01” repeated r times
     // ty = 10...1010 “10” repeated r times
-    this->ty = 6148914691236517205u >> push;
-    this->tx = 12297829382473034410u >> push;
+    this->tx = 6148914691236517205u >> push;
+    this->ty = 12297829382473034410u >> push;
+    std::printf("push: %i\nres: %i\ntx %lb \nty %lb\n", push, resolution, this->tx, this->ty);
 }
 
 
 uint64_t Quadtree::Pow10(int n) {
-    static uint64_t table[] = {
+    static const uint64_t table[] = {
         1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL, 1000000LL, 
         10000000LL, 100000000LL, 1000000000LL, 10000000000LL, 
         100000000000LL, 1000000000000LL, 10000000000000LL, 
@@ -59,25 +58,44 @@ void Quadtree::SubdivideRect(int& midX, int& midY, int& width, int &height, int 
 }
 
 
-uint64_t Quadtree::LocationAdd(uint64_t locationCode, uint64_t direction) const {
+uint64_t Quadtree::DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const {
     return 
         (((locationCode | this->ty) + (direction & this->tx)) & this->tx) | 
         (((locationCode | this->tx) + (direction & this->ty)) & this->ty);
 }
 
 
-//uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int levelDiff, int level) const {
-//    if (levelDiff < 0) {
-//        int shiftBy = 2 * (resolution - level - levelDiff);
-//        return this->LocationAdd((locationCode >> levelDiff) << levelDiff, direction << levelDiff);
-//    } else {
-//        return this->LocationAdd(locationCode, direction << (2 * (resolution - level)));
-//    }
-//}
+void Quadtree::IncrementAdjacentQuad(
+    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier>& mapIdentifiers,
+    const QuadrantIdentifier& quad,
+    int direction,
+    int adjacentShift
+) {
+    static const uint64_t dir[4] = {DIR_S, DIR_N, DIR_W, DIR_E};
+
+    if (quad.dir[direction] != 2) {
+        uint64_t adjacentQuadCode = this->GetAdjacentQuadrant(quad.locationCode, dir[direction], adjacentShift);
+        std::printf("par %lb adj %lb direction %i adjs %i\n", quad.locationCode, adjacentQuadCode, direction, adjacentShift);
+        auto adjacentQuad = mapIdentifiers.at(adjacentQuadCode);
+
+        if (adjacentQuad.level == quad.level) {
+            adjacentQuad.dir[direction ^ 1]++;
+        }
+    }
+}
 
 
 uint64_t Quadtree::GetAdjacentQuadrant(uint64_t locationCode, uint64_t direction, int shift) const {
-    return this->LocationAdd(locationCode, direction << shift);
+    return this->DialatedIntegerAdd(locationCode, direction << shift);
+}
+
+
+int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
+    if (parent.dir[d] == 2) {
+        return 2;
+    } 
+
+    return parent.dir[d] - 1;
 }
 
 
@@ -132,7 +150,7 @@ bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y
 }
 
 
-Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& leafCodes, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
+Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& mapLevels, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
     if (width == 1) {
         return grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
     }
@@ -142,7 +160,7 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
         return Region::Block;
     }
 
-    if (level >= this->resolution) {
+    if (level > this->resolution) {
         return this->ScanCheck(grid, x, y, width, height) ? Region::Valid : Region::Block;
     }
 
@@ -156,10 +174,10 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
     Region regionStatus[numRegions];
     const int pos[8] = {x, midY, midX, midY, x, y, midX, y};
 
-    regionStatus[0] = this->BuildRegion(grid, leafCodes, pos[0], pos[1], childWidth, childHeight, locationCode * 10, level + 1);
-    regionStatus[1] = this->BuildRegion(grid, leafCodes, pos[2], pos[3], childWidth, childHeight, locationCode * 10 + 1, level + 1);
-    regionStatus[2] = this->BuildRegion(grid, leafCodes, pos[4], pos[5], childWidth, childHeight, locationCode * 10 + 2, level + 1);
-    regionStatus[3] = this->BuildRegion(grid, leafCodes, pos[6], pos[7], childWidth, childHeight, locationCode * 10 + 3, level + 1);
+    regionStatus[0] = this->BuildRegion(grid, mapLevels, pos[0], pos[1], childWidth, childHeight, locationCode << 2, level + 1);
+    regionStatus[1] = this->BuildRegion(grid, mapLevels, pos[2], pos[3], childWidth, childHeight, locationCode << 2 | 1, level + 1);
+    regionStatus[2] = this->BuildRegion(grid, mapLevels, pos[4], pos[5], childWidth, childHeight, locationCode << 2 | 2, level + 1);
+    regionStatus[3] = this->BuildRegion(grid, mapLevels, pos[6], pos[7], childWidth, childHeight, locationCode << 2 | 3, level + 1);
     
     if (regionStatus[0] == Region::Mixed ||
         regionStatus[0] != regionStatus[1] ||
@@ -168,11 +186,12 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
         for (int i = 0; i < numRegions; ++i) {
             if (regionStatus[i] == Mixed) continue;
 
-            uint64_t code = (locationCode * 10 + i) * this->Pow10(this->resolution - level);
+            uint64_t code = (locationCode << (2 * (this->resolution - level + 1))) | (i << (2 * (this->resolution - level)));
             
-            leafCodes[code] = level;
+            mapLevels.emplace(code, level);
 
             if (regionStatus[i] == Region::Valid) {
+                this->leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(
                     pos[2 * i], pos[2 * i + 1], 
                     childWidth, 
@@ -193,45 +212,109 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
 void Quadtree::Build(const GridEnvironment& grid) {
 
     // Get leafs
-    ankerl::unordered_dense::map<uint64_t, int> leafCodes; // for adjacent level differences
+    ankerl::unordered_dense::map<uint64_t, int> mapLevels; // for adjacent level differences
     
-    Region region = Quadtree::BuildRegion(grid, leafCodes, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
+    Region region = Quadtree::BuildRegion(grid, mapLevels, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
     
-    if (region == Region::Valid) {
-        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+    if (region != Region::Mixed) {
+        if (region == Region::Valid) {
+            this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+        }
+
         return;
     }
 
-
-    
     // Adjacent level differences
-    std::queue<QuadrantIdentifier> queues;
-    std::queue<QuadrantLevelDiff> directions;
 
-    queues.emplace(0, 0);
-    directions.emplace(~0, ~0, ~0, ~0);
+    std::queue<uint64_t> codes;
+    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
     
-    while (queues.size() > 0) {
-        
-        QuadrantIdentifier currentId = queues.front();
+    codes.emplace(0);
 
+    mapIdentifiers.emplace(0, QuadrantIdentifier(0, 0, 2, 2, 2, 2));
+    
+    int adjacentShift;
 
-        if (leafCodes.find(currentId.locationCode) == leafCodes.end() 
-            || leafCodes[currentId.locationCode] != currentId.level) {
-                        
-            for (int k = 0; k < 4; ++k) {
-                uint64_t childLocation = currentId.locationCode + k * this->Pow10(this->resolution - currentId.level - 1);
-                queues.emplace(childLocation, currentId.level + 1);
+    while (codes.size() > 0) {
+        uint64_t parentLocationCode = codes.front();
+        const QuadrantIdentifier parentQuadrant = mapIdentifiers.find(parentLocationCode)->second;
 
+        uint64_t leafLocationCode = parentLocationCode;// << (2 * (this->resolution - parentQuadrant.level));
+        auto leafLevelIterator = mapLevels.find(leafLocationCode);
+
+        std::printf("parent level: %i\n", parentQuadrant.level);
+
+        if (leafLevelIterator == mapLevels.end() 
+            || leafLevelIterator->second != parentQuadrant.level) {
+            
+            adjacentShift = 2 * (this->resolution - parentQuadrant.level);
+
+            for (int i = 0; i < 4; ++i) {
+                this->IncrementAdjacentQuad(mapIdentifiers, parentQuadrant, i, adjacentShift);
             }
+            
+            adjacentShift -= 2;
+            
+            for (int k = 0; k < 4; ++k) {
+                uint64_t childLocationCode = leafLocationCode | (k << (2 * (this->resolution - parentQuadrant.level - 1)));
+            
+                codes.emplace(childLocationCode);
 
-            // TODO: 
+                auto childQuadrant = QuadrantIdentifier(childLocationCode, parentQuadrant.level + 1);
+                childQuadrant.dir[k >> 1] = this->GetChildLevelDiff(parentQuadrant, k >> 1);
+                childQuadrant.dir[k | 2] = this->GetChildLevelDiff(parentQuadrant, k | 2);
+                childQuadrant.dir[(k ^ 3) >> 1] = 0;
+                childQuadrant.dir[(k ^ 3) | 2] = 0;
+
+                mapIdentifiers.insert_or_assign(childLocationCode, childQuadrant);
+
+                printf("%i adjs\n", k);
+                fflush(stdout);
+             
+                this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k >> 1, adjacentShift);
+                this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k | 2, adjacentShift);      
+            }
+        } else {
+            //mapIdentifiers.emplace(leafLocationCode, parentQuadrant);
         }
 
-        queues.pop();
+        codes.pop();
     } 
     
+    // Build graphs
+    this->graph.resize(this->leafs.size());
 
+    for (int i = 0; i < this->leafs.size(); ++i) {
+        int level = this->leafs[i].GetLevel();
+        uint64_t code = this->leafs[i].GetCode();
+        const QuadrantIdentifier& quad = mapIdentifiers.at(code >> (2 * (this->resolution - level)));
+        for (int k = 0; k < 4; ++k) {
+            int levelDiffs = quad.dir[k];
+
+            if (levelDiffs > 0) continue;
+
+            if (levelDiffs == 0) {
+                uint64_t adjacentCode = this->GetAdjacentQuadrant(code, k, 2 * (this->resolution - level));
+            
+                auto adjacentIterator = this->leafIndex.find(adjacentCode);
+                if (adjacentIterator == this->leafIndex.end()) continue;
+
+                int adjacentIndex = adjacentIterator->second;
+                this->graph[i].push_back(adjacentIndex);
+
+            } else {
+                //int shift = 2 * (this->resolution - level - levelDiffs);
+                //uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);
+                //
+                //auto adjacentIterator = this->leafIndex.find(adjacentCode);
+                //if (adjacentIterator == this->leafIndex.end()) continue;
+                //
+                //int adjacentIndex = adjacentIterator->second;
+                //this->graph[i].push_back(adjacentIndex);
+                //this->graph[adjacentIndex].push_back(i);
+            }
+        }
+    }
 
 }
 

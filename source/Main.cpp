@@ -8,10 +8,12 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(20);
+Quadtree quadtree(3);
 
 Image image;
 Texture2D texture;
+
+bool isGameEnd;
 
 // Main loop initialization
 void Init(char* filename) {
@@ -44,6 +46,7 @@ void Init(char* filename) {
 
     Renderer::UpdateQuadtreeLeafs(quadtree);
 
+    isGameEnd = false;
 }
 
 
@@ -55,6 +58,10 @@ void Update(float deltaTime) {
 
 // Main loop input
 void Input() {
+
+    if (IsKeyPressed(KEY_SPACE)) {
+        isGameEnd = true;
+    }
 
 }
 
@@ -80,7 +87,7 @@ void Draw() {
 int main(int argc, char* argv[]) {
     Init(argv[1]);
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose() && !isGameEnd) {
         Input();
         Update(GetFrameTime());
         Draw();
