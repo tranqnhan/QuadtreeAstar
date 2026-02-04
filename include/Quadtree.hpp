@@ -109,6 +109,8 @@ private:
     uint64_t tx;
     uint64_t ty;
 
+    uint64_t directionsI[4]; // SOUTH, NORTH, WEST, EAST
+
     int resolution;
     int maxLevel;
 

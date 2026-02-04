@@ -23,13 +23,13 @@ Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, i
 
 // Quadtree
 Quadtree::Quadtree(int resolution) {
-    this->resolution = resolution > 19 ? 19 : resolution;
+    this->resolution = resolution > 32 ? 32 : resolution;
     int push = (32 - resolution) * 2;
     
     // tx = 01...0101 “01” repeated r times
     // ty = 10...1010 “10” repeated r times
-    this->tx = 6148914691236517205u >> push;
-    this->ty = 12297829382473034410u >> push;
+    this->tx = 0x5555555555555555 >> push;
+    this->ty = 0xAAAAAAAAAAAAAAAA >> push;
     std::printf("push: %i\nres: %i\ntx %lb \nty %lb\n", push, resolution, this->tx, this->ty);
 }
 
@@ -313,6 +313,8 @@ void Quadtree::Build(const GridEnvironment& grid) {
     }
 
 }
+
+// TODO: fixing resolution with the direction. ie . unified direction theory
 
 /**
     Interleaving Algorithm from Daniel Lemire's blog
