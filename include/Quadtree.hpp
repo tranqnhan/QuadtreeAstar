@@ -128,7 +128,6 @@ private:
     uint64_t Interleave(uint32_t x, uint32_t y) const;
     uint64_t InterleaveZero(uint32_t input) const;
     void Deinterleave(uint64_t z, uint64_t& x, uint64_t& y) const;
-    uint64_t Pow10(int n);
     int GetChildLevelDiff(const QuadrantIdentifier& parent, int dir) const;
     
     void IncrementAdjacentQuad(
