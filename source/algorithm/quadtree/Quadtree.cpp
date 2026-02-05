@@ -23,7 +23,7 @@ Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, i
 
 // Quadtree
 Quadtree::Quadtree(int resolution) {
-    this->resolution = resolution > 10 ? 10 : resolution;
+    this->resolution = resolution > 32 ? 32 : resolution;
     const int push = (32 - resolution) * 2;
 
     // SOUTH
@@ -190,7 +190,7 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
         regionStatus[0] != regionStatus[1] ||
         regionStatus[0] != regionStatus[2] ||
         regionStatus[0] != regionStatus[3]) {
-        for (int i = 0; i < numRegions; ++i) {
+        for (uint64_t i = 0; i < numRegions; ++i) {
             if (regionStatus[i] == Mixed) continue;
 
             uint64_t code = (locationCode << (2 * (this->resolution - level + 1))) | (i << (2 * (this->resolution - level)));
@@ -254,16 +254,18 @@ void Quadtree::Build(const GridEnvironment& grid) {
             
             adjacentShift = 2 * (this->resolution - parentQuadrant.level);
 
-            for (int i = 0; i < 4; ++i) {
+            for (uint64_t i = 0; i < 4; ++i) {
                 this->IncrementAdjacentQuad(mapIdentifiers, parentQuadrant, i, adjacentShift);
             }
             
             adjacentShift -= 2;
             
-            for (int k = 0; k < 4; ++k) {
+            for (uint64_t k = 0; k < 4; ++k) {
                 uint64_t childLocationCode = leafLocationCode | (k << (2 * (this->resolution - parentQuadrant.level - 1)));
             
-                codes.emplace(childLocationCode);
+                if (parentQuadrant.level + 1 < this->resolution) {
+                    codes.emplace(childLocationCode);
+                }
 
                 auto childQuadrant = QuadrantIdentifier(childLocationCode, parentQuadrant.level + 1);
                 childQuadrant.dir[k >> 1] = this->GetChildLevelDiff(parentQuadrant, k >> 1);
@@ -292,7 +294,6 @@ void Quadtree::Build(const GridEnvironment& grid) {
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
         for (int k = 0; k < 4; ++k) {
             int levelDiffs = quad.dir[k];
-
 
             if (levelDiffs > 0) continue;
 
