@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 
+#include <memory>
 #include <raylib.h>
 
 #include "Program.hpp"
@@ -8,7 +9,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
-Quadtree quadtree(32);
+std::unique_ptr<Quadtree> quadtree;
 
 Image image;
 Texture2D texture;
@@ -24,6 +25,7 @@ void Init(char* filename) {
     
     Renderer::Init();
 
+
     image = LoadImage(filename);
 
     GridEnvironment grid(image.width, image.height);
@@ -35,16 +37,17 @@ void Init(char* filename) {
 
     texture = LoadTextureFromImage(image);
 
+    quadtree = std::make_unique<Quadtree>(512);
 
     auto start = std::chrono::high_resolution_clock::now();
-    quadtree.Build(grid);
+    quadtree->Build(grid);
     auto stop = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
     std::cout << duration.count() << std::endl;
 
-    Renderer::UpdateQuadtreeLeafs(quadtree);
+    Renderer::UpdateQuadtreeLeafs(*(quadtree.get()));
 
     isGameEnd = false;
 }

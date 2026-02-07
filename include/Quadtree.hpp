@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_map>
 #include <ankerl/unordered_dense.h>
 #include <vector>
 
@@ -12,12 +11,6 @@
  * A Constant-Time Algorithm for Finding Neighbors in Quadtrees
  * by Kunio Aizawa and Shojiro Tanaka 
  */
-
-#define DIR_N  0b000010u // north neighbor
-#define DIR_E  0b000001u // east neighbor
-#define DIR_W  0b010101u // west neighbor
-#define DIR_S  0b101010u // south neighbor
-
 
 struct QuadrantIdentifier {
     uint64_t locationCode;

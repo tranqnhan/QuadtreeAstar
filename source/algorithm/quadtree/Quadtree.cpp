@@ -1,7 +1,9 @@
+#include <cmath>
 #include <cstdint>
 
 #include <cstdio>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
@@ -22,7 +24,8 @@ Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, i
 }
 
 // Quadtree
-Quadtree::Quadtree(int resolution) {
+Quadtree::Quadtree(int size) {
+    this->resolution = (int)std::log2(size);
     this->resolution = resolution > 32 ? 32 : resolution;
     const int push = (32 - resolution) * 2;
 
@@ -185,7 +188,7 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
             if (regionStatus[i] == Region::Valid) {
                 this->leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(
-                    pos[2 * i], pos[2 * i + 1], 
+                    pos[i * 2], pos[i * 2 + 1], 
                     childWidth, 
                     childHeight,
                     code,
@@ -205,17 +208,85 @@ void Quadtree::Build(const GridEnvironment& grid) {
 
     // Get leafs
     ankerl::unordered_dense::map<uint64_t, int> mapLevels; // for adjacent level differences
-    
-    Region region = Quadtree::BuildRegion(grid, mapLevels, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
-    
-    if (region != Region::Mixed) {
-        if (region == Region::Valid) {
-            this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+    //Region region = Quadtree::BuildRegion(grid, mapLevels, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
+    //
+    //if (region != Region::Mixed) {
+    //    if (region == Region::Valid) {
+    //        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
+    //    }
+    //    return;
+    //}
+    //this->graph.resize(this->leafs.size());
+//
+    //return;
+    const char numQuads = 4;
+    const size_t size = grid.GetWidth() * grid.GetHeight();
+
+    // TODO: replace with a calculated the bounds of this
+    std::vector<bool> stack(size);
+    std::vector<uint32_t> bounds(size * numQuads);
+    int head = 0;
+    uint64_t x, y;
+    bool valid;
+    std::unordered_map<uint64_t, int> mapLTest;
+
+    for (uint64_t z = 0; z < size; z += numQuads) {
+        for (int i = 0; i < numQuads; ++i) {
+            this->Deinterleave(z + i, x, y);
+
+            bounds[head * numQuads + 0] = x;
+            bounds[head * numQuads + 1] = y;
+            bounds[head * numQuads + 2] = 1;
+            bounds[head * numQuads + 3] = 1;
+
+            stack[head++] = grid.IsValid(y * grid.GetWidth() + x);
         }
 
-        return;
+        do {
+            head -= numQuads;
+            valid = true;
+            
+            for (int j = 0; j < numQuads; ++j) {
+                if (!stack[head + j]) {
+                    valid = false;
+
+                    // TODO: Room for optimization here
+
+                    // Quadtree Leafs
+                    for (int k = 0; k < numQuads; ++k) {
+                        x = bounds[(head + k) * numQuads + 0];
+                        y = bounds[(head + k) * numQuads + 1];
+
+                        uint64_t code = Interleave(x, y);
+
+                        int level = this->resolution - std::log2(bounds[(head + k) * numQuads + 2]);
+                        //mapLevels.emplace(code, level);
+
+                        //if (stack[head + k]) {
+                        //    this->leafIndex.emplace(code, this->leafs.size());
+                            this->leafs.emplace_back(
+                                bounds[(head + k) * numQuads + 0], 
+                                bounds[(head + k) * numQuads + 1],
+                                bounds[(head + k) * numQuads + 2],
+                                bounds[(head + k) * numQuads + 3],
+                                code, level);
+                        //}
+                    }
+
+                    break; 
+                }
+            }
+
+            bounds[head * numQuads + 2] *= 2;
+            bounds[head * numQuads + 3] *= 2;
+            stack[head++] = valid;
+        } while (head >= numQuads && bounds[(head - 1) * numQuads + 2] == bounds[(head - 4) * numQuads + 2]);
     }
 
+
+    // Build graphs
+    this->graph.resize(this->leafs.size());
+    return;
     // Adjacent level differences
 
     std::queue<uint64_t> codes;
@@ -263,8 +334,6 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k >> 1, adjacentShift);
                 this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k | 2, adjacentShift);      
             }
-        } else {
-            //mapIdentifiers.emplace(leafLocationCode, parentQuadrant);
         }
 
         codes.pop();
