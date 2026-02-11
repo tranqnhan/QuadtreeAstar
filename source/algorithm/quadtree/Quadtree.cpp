@@ -207,7 +207,7 @@ Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dens
 void Quadtree::Build(const GridEnvironment& grid) {
 
     // Get leafs
-    ankerl::unordered_dense::map<uint64_t, int> mapLevels; // for adjacent level differences
+    //ankerl::unordered_dense::map<uint64_t, int> mapLevels; // for adjacent level differences
     //Region region = Quadtree::BuildRegion(grid, mapLevels, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
     //
     //if (region != Region::Mixed) {
@@ -261,17 +261,15 @@ void Quadtree::Build(const GridEnvironment& grid) {
                         uint64_t code = Interleave(x, y);
 
                         int level = this->resolution - std::log2(bounds[(head + k) * numQuads + 2]);
-                        mapLevels.emplace(code, level);
-
-                        if (stack[head + k] == Region::Valid) {
-                            this->leafIndex.emplace(code, this->leafs.size());
-                            this->leafs.emplace_back(
-                                bounds[(head + k) * numQuads + 0], 
-                                bounds[(head + k) * numQuads + 1],
-                                bounds[(head + k) * numQuads + 2],
-                                bounds[(head + k) * numQuads + 3],
-                                code, level);
-                        }
+                        
+                        this->leafIndex.emplace(code, this->leafs.size());
+                        this->leafs.emplace_back(
+                            bounds[(head + k) * numQuads + 0], 
+                            bounds[(head + k) * numQuads + 1],
+                            bounds[(head + k) * numQuads + 2],
+                            bounds[(head + k) * numQuads + 3],
+                            code, level);
+                        this->leafValid.emplace_back(stack[head + k] == Region::Valid);
                     }
 
                     break; 
@@ -300,10 +298,10 @@ void Quadtree::Build(const GridEnvironment& grid) {
         const QuadrantIdentifier parentQuadrant = mapIdentifiers.find(parentLocationCode)->second;
 
         uint64_t leafLocationCode = parentLocationCode;// << (2 * (this->resolution - parentQuadrant.level));
-        auto leafLevelIterator = mapLevels.find(leafLocationCode);
+        auto leafLevelIterator = this->leafIndex.find(leafLocationCode);
 
-        if (leafLevelIterator == mapLevels.end() 
-            || leafLevelIterator->second != parentQuadrant.level) {
+        if (leafLevelIterator == this->leafIndex.end() 
+            || this->leafs[leafLevelIterator->second].GetLevel() != parentQuadrant.level) {
             
             adjacentShift = 2 * (this->resolution - parentQuadrant.level);
 
@@ -340,9 +338,11 @@ void Quadtree::Build(const GridEnvironment& grid) {
     this->graph.resize(this->leafs.size());
 
     for (int i = 0; i < this->leafs.size(); ++i) {
+        if (!this->leafValid[i]) continue;
         int level = this->leafs[i].GetLevel();
         uint64_t code = this->leafs[i].GetCode();
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
+        
         for (int k = 0; k < 4; ++k) {
             int levelDiffs = quad.dir[k];
 

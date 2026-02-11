@@ -108,6 +108,7 @@ private:
     int maxLevel;
 
     std::vector<Quadrant> leafs;
+    std::vector<bool> leafValid;
     ankerl::unordered_dense::map<uint64_t, int> leafIndex;
 
     std::vector<std::vector<int>> graph;
