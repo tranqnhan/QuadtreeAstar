@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -82,7 +83,7 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 
 void Quadtree::Build(const GridEnvironment& grid) {
     const char numQuads = 4;
-    const size_t size = grid.GetWidth() * grid.GetHeight();
+    const size_t size = this->resolution * 3 + 1;
 
     // TODO: replace with a calculated the bounds of this
     std::vector<Region> stack(size);
@@ -92,12 +93,15 @@ void Quadtree::Build(const GridEnvironment& grid) {
     uint64_t x, y;
     Region region;
 
-    for (uint64_t z = 0; z < size; z += numQuads) {
+    int maxHead = 0;
+
+    for (uint64_t z = 0; z < grid.GetWidth() * grid.GetHeight(); z += numQuads) {
         for (int i = 0; i < numQuads; ++i) {
             BinaryMath::Deinterleave(z + i, x, y);
             levels[head] = this->resolution;
             zcodes[head] = z;
             stack[head++] = grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
+            maxHead = head > maxHead ? head : maxHead;
         }
 
         do {
@@ -127,9 +131,12 @@ void Quadtree::Build(const GridEnvironment& grid) {
 
             levels[head] -= 1;
             stack[head++] = region;
+
+            maxHead = head > maxHead ? head : maxHead;
+
         } while (head >= numQuads && levels[head - 1] == levels[head - 4]);
     }
-
+    
     // Adjacent level differences
 
     std::queue<uint64_t> codes;
