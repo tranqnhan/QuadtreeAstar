@@ -18,6 +18,7 @@ target_compile_options(QuadtreeAstar PRIVATE -O3)
 
 
 target_sources(QuadtreeAstar PRIVATE
+    source/BinaryMath.cpp
     source/algorithm/quadtree/Quadtree.cpp
     source/rendering/Renderer.cpp
     source/Main.cpp
