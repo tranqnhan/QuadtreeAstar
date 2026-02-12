@@ -3,24 +3,19 @@
 
 #include <cstdio>
 #include <queue>
-#include <unordered_map>
 #include <vector>
 
 #include <ankerl/unordered_dense.h>
 #include <raylib.h>
 
+#include "BinaryMath.hpp"
 #include "Quadtree.hpp"
 #include "GridEnvironment.hpp"
 
 // Quadtree Leaf
-Quadrant::Quadrant(int x, int y, int width, int height, uint64_t locationCode, int level) {
+Quadrant::Quadrant(uint64_t locationCode, int level) {
     this->locationCode = locationCode;
     this->level = level;
-
-    bbox[0] = x;
-    bbox[1] = y;
-    bbox[2] = width;
-    bbox[3] = height;
 }
 
 // Quadtree
@@ -30,11 +25,11 @@ Quadtree::Quadtree(int size) {
     const int push = (32 - resolution) * 2;
 
     // SOUTH
-    this->dI[0] = this->Interleave(0, (uint32_t)(~0) >> (push / 2));
+    this->dI[0] = BinaryMath::Interleave(0, (uint32_t)(~0) >> (push / 2));
     // NORTH
     this->dI[1] = 0b10;
     // WEST
-    this->dI[2] = this->Interleave((uint32_t)(~0) >> (push / 2), 0);
+    this->dI[2] = BinaryMath::Interleave((uint32_t)(~0) >> (push / 2), 0);
     // EAST
     this->dI[3] = 0b01;
 
@@ -43,15 +38,6 @@ Quadtree::Quadtree(int size) {
     this->tx = 0x5555555555555555 >> push;
     this->ty = 0xAAAAAAAAAAAAAAAA >> push;
     std::printf("push: %i\nres: %i\ntx %lb \nty %lb\n", push, resolution, this->tx, this->ty);
-}
-
-
-
-void Quadtree::SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y) {
-    width /= 2;
-    height /= 2;
-    midX = width + x;
-    midY = height + y;
 }
 
 
@@ -94,150 +80,23 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 }
 
 
-// Returns false if there exists an invalid spot in the region
-bool Quadtree::ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
-    const int xbound = x + width;
-    const int ybound = y + height;
-
-    for (int i = x; i < xbound; ++i) {    
-        for (int j = y; j < ybound; ++j) {
-            if (!grid.IsValid(j * grid.GetWidth() + i)) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-
-// Check if there is a border of invalids
-bool Quadtree::BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height) {
-    const int xbound = x + width;
-    const int ybound = y + height;
-
-    for (int i = x; i < xbound; ++i) {
-        if (grid.IsValid(y * grid.GetWidth() + i)) {
-            return false;
-        }
-    }
-
-    for (int i = x; i < xbound; ++i) {
-        if (grid.IsValid((ybound - 1) * grid.GetWidth() + i)) {
-            return false;
-        }
-    }
-
-    for (int i = y; i < ybound; ++i) {
-        if (grid.IsValid(i * grid.GetWidth() + x)) {
-            return false;
-        }
-    }
-
-    for (int i = y; i < ybound; ++i) {
-        if (grid.IsValid(i * grid.GetWidth() + (xbound - 1))) {
-            return false;
-        }
-    }
-
-
-    return true;
-}
-
-
-Region Quadtree::BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& mapLevels, const int x, const int y, const int width, const int height, uint64_t locationCode, int level) {
-    if (width == 1) {
-        return grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
-    }
-
-    if (this->BorderCheck(grid, x, y, width, height)) {
-        // TODO: check if the region is covering the start / end
-        return Region::Block;
-    }
-
-    if (level > this->resolution) {
-        return this->ScanCheck(grid, x, y, width, height) ? Region::Valid : Region::Block;
-    }
-
-    int midX, midY;
-    int childWidth = width;
-    int childHeight = height;
-    this->SubdivideRect(midX, midY, childWidth, childHeight, x, y);
-
-    constexpr int numRegions = 4;
-
-    Region regionStatus[numRegions];
-    const int pos[8] = {x, midY, midX, midY, x, y, midX, y};
-
-    regionStatus[0] = this->BuildRegion(grid, mapLevels, pos[0], pos[1], childWidth, childHeight, locationCode << 2, level + 1);
-    regionStatus[1] = this->BuildRegion(grid, mapLevels, pos[2], pos[3], childWidth, childHeight, locationCode << 2 | 1, level + 1);
-    regionStatus[2] = this->BuildRegion(grid, mapLevels, pos[4], pos[5], childWidth, childHeight, locationCode << 2 | 2, level + 1);
-    regionStatus[3] = this->BuildRegion(grid, mapLevels, pos[6], pos[7], childWidth, childHeight, locationCode << 2 | 3, level + 1);
-    
-    if (regionStatus[0] == Region::Mixed ||
-        regionStatus[0] != regionStatus[1] ||
-        regionStatus[0] != regionStatus[2] ||
-        regionStatus[0] != regionStatus[3]) {
-        for (uint64_t i = 0; i < numRegions; ++i) {
-            if (regionStatus[i] == Mixed) continue;
-
-            uint64_t code = (locationCode << (2 * (this->resolution - level + 1))) | (i << (2 * (this->resolution - level)));
-            
-            mapLevels.emplace(code, level);
-
-            if (regionStatus[i] == Region::Valid) {
-                this->leafIndex.emplace(code, this->leafs.size());
-                this->leafs.emplace_back(
-                    pos[i * 2], pos[i * 2 + 1], 
-                    childWidth, 
-                    childHeight,
-                    code,
-                    level);
-            }
-        }
-
-
-        return Region::Mixed;
-    }
-
-    return regionStatus[0];
-}
-
-
 void Quadtree::Build(const GridEnvironment& grid) {
-
-    // Get leafs
-    //ankerl::unordered_dense::map<uint64_t, int> mapLevels; // for adjacent level differences
-    //Region region = Quadtree::BuildRegion(grid, mapLevels, 0, 0, grid.GetWidth(), grid.GetHeight(), 0, 1);
-    //
-    //if (region != Region::Mixed) {
-    //    if (region == Region::Valid) {
-    //        this->leafs.emplace_back(0, 0, grid.GetWidth(), grid.GetHeight(), 0, 0);
-    //    }
-    //    return;
-    //}
-    //this->graph.resize(this->leafs.size());
-//
-    //return;
     const char numQuads = 4;
     const size_t size = grid.GetWidth() * grid.GetHeight();
 
     // TODO: replace with a calculated the bounds of this
     std::vector<Region> stack(size);
-    std::vector<uint32_t> bounds(size * numQuads);
-    int head = 0;
+    std::vector<int> levels(size);
+    std::vector<uint64_t> zcodes(size);
+    uint64_t head = 0;
     uint64_t x, y;
     Region region;
 
     for (uint64_t z = 0; z < size; z += numQuads) {
         for (int i = 0; i < numQuads; ++i) {
-            this->Deinterleave(z + i, x, y);
-
-            bounds[head * numQuads + 0] = x;
-            bounds[head * numQuads + 1] = y;
-            bounds[head * numQuads + 2] = 1;
-            bounds[head * numQuads + 3] = 1;
-
+            BinaryMath::Deinterleave(z + i, x, y);
+            levels[head] = this->resolution;
+            zcodes[head] = z;
             stack[head++] = grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
         }
 
@@ -248,27 +107,17 @@ void Quadtree::Build(const GridEnvironment& grid) {
             for (int j = 1; j < numQuads; ++j) {
                 if (stack[head + j] != region) {
                     region = Region::Mixed;
-
                     // TODO: Room for optimization here
-
                     // Quadtree Leafs
                     for (int k = 0; k < numQuads; ++k) {
                         if (stack[head + k] == Region::Mixed) continue;
 
-                        x = bounds[(head + k) * numQuads + 0];
-                        y = bounds[(head + k) * numQuads + 1];
+                        int level = levels[head + k];
 
-                        uint64_t code = Interleave(x, y);
+                        uint64_t code = zcodes[head + k];
 
-                        int level = this->resolution - std::log2(bounds[(head + k) * numQuads + 2]);
-                        
                         this->leafIndex.emplace(code, this->leafs.size());
-                        this->leafs.emplace_back(
-                            bounds[(head + k) * numQuads + 0], 
-                            bounds[(head + k) * numQuads + 1],
-                            bounds[(head + k) * numQuads + 2],
-                            bounds[(head + k) * numQuads + 3],
-                            code, level);
+                        this->leafs.emplace_back(code, level);
                         this->leafValid.emplace_back(stack[head + k] == Region::Valid);
                     }
 
@@ -276,10 +125,9 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 }
             }
 
-            bounds[head * numQuads + 2] *= 2;
-            bounds[head * numQuads + 3] *= 2;
+            levels[head] -= 1;
             stack[head++] = region;
-        } while (head >= numQuads && bounds[(head - 1) * numQuads + 2] == bounds[(head - 4) * numQuads + 2]);
+        } while (head >= numQuads && levels[head - 1] == levels[head - 4]);
     }
 
     // Adjacent level differences
@@ -339,6 +187,7 @@ void Quadtree::Build(const GridEnvironment& grid) {
 
     for (int i = 0; i < this->leafs.size(); ++i) {
         if (!this->leafValid[i]) continue;
+
         int level = this->leafs[i].GetLevel();
         uint64_t code = this->leafs[i].GetCode();
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
@@ -355,6 +204,9 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 if (adjacentIterator == this->leafIndex.end()) continue;
 
                 int adjacentIndex = adjacentIterator->second;
+                
+                if (!this->leafValid[adjacentIndex]) continue;
+
                 this->graph[i].push_back(adjacentIndex);
             } else {
                 int shift = 2 * (this->resolution - level - levelDiffs);
@@ -364,6 +216,9 @@ void Quadtree::Build(const GridEnvironment& grid) {
                 if (adjacentIterator == this->leafIndex.end()) continue;
                 
                 int adjacentIndex = adjacentIterator->second;
+
+                if (!this->leafValid[adjacentIndex]) continue;
+
                 this->graph[i].push_back(adjacentIndex);
                 this->graph[adjacentIndex].push_back(i);
             }
@@ -371,41 +226,3 @@ void Quadtree::Build(const GridEnvironment& grid) {
     }
 
 }
-
-/**
-    Interleaving Algorithm from Daniel Lemire's blog
-    How fast can you bit-interleave 32-bit integers?
-    and
-    https://stackoverflow.com/questions/4909263/how-to-efficiently-de-interleave-bits-inverse-morton
-*/
-
-uint64_t Quadtree::InterleaveZero(uint32_t input) const {
-    uint64_t word = input;
-    word = (word ^ (word << 16)) & 0x0000ffff0000ffff;
-    word = (word ^ (word << 8 )) & 0x00ff00ff00ff00ff;
-    word = (word ^ (word << 4 )) & 0x0f0f0f0f0f0f0f0f;
-    word = (word ^ (word << 2 )) & 0x3333333333333333;
-    word = (word ^ (word << 1 )) & 0x5555555555555555;
-    return word;
-}
-
-
-uint64_t Quadtree::Interleave(uint32_t x, uint32_t y) const {
-    return this->InterleaveZero(x) | (this->InterleaveZero(y) << 1);
-}
-
-void Quadtree::Deinterleave(uint64_t z, uint64_t& x, uint64_t& y) const {
-    x = z & 0x5555555555555555;
-    x = (x | (x >> 1)) & 0x3333333333333333;
-    x = (x | (x >> 2)) & 0x0f0f0f0f0f0f0f0f;
-    x = (x | (x >> 4)) & 0x00ff00ff00ff00ff;
-    x = (x | (x >> 8)) & 0x0000ffff0000ffff;
-
-    y = (z >> 1) & 0x5555555555555555;
-    y = (y | (y >> 1)) & 0x3333333333333333;
-    y = (y | (y >> 2)) & 0x0f0f0f0f0f0f0f0f;
-    y = (y | (y >> 4)) & 0x00ff00ff00ff00ff;
-    y = (y | (y >> 8)) & 0x0000ffff0000ffff;
-}
-
-

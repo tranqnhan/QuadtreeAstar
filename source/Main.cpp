@@ -80,8 +80,8 @@ void Draw() {
 
     Renderer::DrawQuadtreeLeafs();
 
-    DrawRectangle(0, 0, 100, 25, BLACK);
-    DrawFPS(0, 0);
+    //DrawRectangle(0, 0, 100, 25, BLACK);
+    //DrawFPS(0, 0);
     EndDrawing();
 }
 

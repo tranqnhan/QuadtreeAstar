@@ -4,6 +4,7 @@
 #include <ankerl/unordered_dense.h>
 #include <vector>
 
+#include "BinaryMath.hpp"
 #include "GridEnvironment.hpp"
 
 /**
@@ -38,23 +39,15 @@ struct QuadrantIdentifier {
  */
 class Quadrant {
 public:
-    Quadrant(int x, int y, int width, int height, uint64_t locationCode, int level);
+    Quadrant(uint64_t locationCode, int level);
 
     int GetX() const {
-        return bbox[0];
-    };
+        return BinaryMath::Deinterleave(this->locationCode);
+    }
 
     int GetY() const {
-        return bbox[1];
-    };
-
-    int GetWidth() const {
-        return bbox[2];
-    };
-
-    int GetHeight() const {
-        return bbox[3];
-    };
+        return BinaryMath::Deinterleave(this->locationCode >> 1);
+    }
 
     int GetLevel() const {
         return level;
@@ -65,11 +58,9 @@ public:
     }
 
 private:
-    int bbox[4];
     int levelDifferences[4];    
     int level;
     uint64_t locationCode;
-    
 };
 
 
@@ -113,15 +104,8 @@ private:
 
     std::vector<std::vector<int>> graph;
     
-    bool ScanCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
-    void SubdivideRect(int& midX, int& midY, int& width, int &height, int x, int y);
     uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const; 
-    Region BuildRegion(const GridEnvironment& grid, ankerl::unordered_dense::map<uint64_t, int>& leafCodes, const int x, const int y, const int width, const int height, uint64_t locationCode, int level);
-    bool BorderCheck(const GridEnvironment& grid, const int x, const int y, const int width, const int height);
-    uint64_t Interleave(uint32_t x, uint32_t y) const;
-    uint64_t InterleaveZero(uint32_t input) const;
-    void Deinterleave(uint64_t z, uint64_t& x, uint64_t& y) const;
     int GetChildLevelDiff(const QuadrantIdentifier& parent, int dir) const;
     
     void IncrementAdjacentQuad(
@@ -131,6 +115,7 @@ private:
         int adjacentShift
     );
 
+    
 
 
 };

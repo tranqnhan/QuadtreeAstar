@@ -19,7 +19,11 @@ void Renderer::Init() {
 
 
 void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
-    DrawRectangleLines(quad.GetX() + 1, quad.GetY(), quad.GetWidth() - 1, quad.GetHeight() - 1, PURPLE);
+    int length = 1 << (resolution - quad.GetLevel());
+    int x = quad.GetX(); //(512 - quad.GetX()) - length;
+    int y = quad.GetY(); //(512 - quad.GetY()) - length;
+
+    DrawRectangleLines(x + 1, y, length, length, PURPLE);
 
     uint64_t code = quad.GetCode();
     std::string codeText = "";
@@ -31,7 +35,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     }
     std::reverse(codeText.begin(), codeText.end());
 
-    //DrawText(codeText.c_str(), quad.GetX() + 1, quad.GetY(), 12, BLUE);
+    //DrawText(codeText.c_str(), x, y, 12, BLUE);
 }
 
 
@@ -40,16 +44,22 @@ void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
     const std::vector<Quadrant>& leafs = quadtree.GetLeafs();
     const std::vector<std::vector<int>>& graph = quadtree.GetGraph();
 
+    std::printf("num leafs: %li\n", leafs.size());
+
     for (int i = 0 ; i < leafs.size(); ++i) {
         Renderer::DrawQuadrant(leafs[i], quadtree.GetResolution());
         
-        int x1 = leafs[i].GetX() + leafs[i].GetWidth() / 2;
-        int y1 = leafs[i].GetY() + leafs[i].GetHeight() / 2;
-            
+        //int x1 = leafs[i].GetX() + leafs[i].GetWidth() / 2;
+        //int y1 = leafs[i].GetY() + leafs[i].GetHeight() / 2;
+        int length1 = 1 << (quadtree.GetResolution() - leafs[i].GetLevel());
+        int x1 = leafs[i].GetX() + (length1 / 2); //(512 - quad.GetX()) - length;
+        int y1 = leafs[i].GetY() + (length1 / 2); //(512 - quad.GetY()) - length;
+    
         for (int k = 0; k < graph[i].size(); ++k) {
             int adjIndex = graph[i][k];
-            int x2 = leafs[adjIndex].GetX() + leafs[adjIndex].GetWidth() / 2;
-            int y2 = leafs[adjIndex].GetY() + leafs[adjIndex].GetHeight() / 2;
+            int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
+            int x2 = leafs[adjIndex].GetX() + length2 / 2;
+            int y2 = leafs[adjIndex].GetY() + length2 / 2;
             DrawLine(x1, y1, x2, y2, BLUE);
         } 
     }
