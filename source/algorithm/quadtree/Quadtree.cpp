@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -80,8 +79,7 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
     return parent.dir[d] - 1;
 }
 
-
-void Quadtree::Build(const GridEnvironment& grid) {
+void Quadtree::BuildRegion(const GridEnvironment& grid) {
     const char numQuads = 4;
     const size_t size = this->resolution * 3 + 1;
 
@@ -136,11 +134,13 @@ void Quadtree::Build(const GridEnvironment& grid) {
 
         } while (head >= numQuads && levels[head - 1] == levels[head - 4]);
     }
-    
-    // Adjacent level differences
+}
 
+
+void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers) {
+
+    // Adjacent level differences
     std::queue<uint64_t> codes;
-    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
     
     codes.emplace(0);
 
@@ -188,8 +188,10 @@ void Quadtree::Build(const GridEnvironment& grid) {
 
         codes.pop();
     } 
-    
-    // Build graphs
+}
+
+void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers) {
+  // Build graphs
     this->graph.resize(this->leafs.size());
 
     for (int i = 0; i < this->leafs.size(); ++i) {
@@ -231,5 +233,14 @@ void Quadtree::Build(const GridEnvironment& grid) {
             }
         }
     }
+}
 
+void Quadtree::Build(const GridEnvironment& grid) {
+ 
+    this->BuildRegion(grid);
+    
+    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
+
+    this->BuildLevelDifferences(mapIdentifiers);
+    this->BuildGraph(mapIdentifiers);
 }

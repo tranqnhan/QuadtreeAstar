@@ -14,7 +14,7 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 target_link_libraries(QuadtreeAstar raylib unordered_dense::unordered_dense)
-target_compile_options(QuadtreeAstar PRIVATE -O3)
+target_compile_options(QuadtreeAstar PRIVATE -O2)
 
 
 target_sources(QuadtreeAstar PRIVATE

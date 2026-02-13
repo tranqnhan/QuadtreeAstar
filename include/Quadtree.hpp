@@ -58,7 +58,6 @@ public:
     }
 
 private:
-    int levelDifferences[4];    
     int level;
     uint64_t locationCode;
 };
@@ -103,7 +102,11 @@ private:
     ankerl::unordered_dense::map<uint64_t, int> leafIndex;
 
     std::vector<std::vector<int>> graph;
-    
+        
+    void BuildRegion(const GridEnvironment& grid);
+    void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);
+    void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);
+
     uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const; 
     int GetChildLevelDiff(const QuadrantIdentifier& parent, int dir) const;

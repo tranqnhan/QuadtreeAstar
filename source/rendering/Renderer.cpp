@@ -23,7 +23,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     int x = quad.GetX(); //(512 - quad.GetX()) - length;
     int y = quad.GetY(); //(512 - quad.GetY()) - length;
 
-    DrawRectangleLines(x + 1, y, length, length, PURPLE);
+    DrawRectangleLines(x, y, length, length, PURPLE);
 
     uint64_t code = quad.GetCode();
     std::string codeText = "";
@@ -44,9 +44,8 @@ void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
     const std::vector<Quadrant>& leafs = quadtree.GetLeafs();
     const std::vector<std::vector<int>>& graph = quadtree.GetGraph();
 
-    std::printf("num leafs: %li\n", leafs.size());
-
     for (int i = 0 ; i < leafs.size(); ++i) {
+        
         Renderer::DrawQuadrant(leafs[i], quadtree.GetResolution());
         
         //int x1 = leafs[i].GetX() + leafs[i].GetWidth() / 2;
