@@ -39,7 +39,7 @@ struct QuadrantIdentifier {
  */
 class Quadrant {
 public:
-    Quadrant(uint64_t locationCode, int level);
+    Quadrant(uint64_t locationCode, int level, bool isValid);
 
     int GetX() const {
         return BinaryMath::Deinterleave(this->locationCode);
@@ -57,9 +57,14 @@ public:
         return locationCode;
     }
 
+    bool IsValid() const {
+        return isValid;
+    }
+
 private:
     int level;
     uint64_t locationCode;
+    bool isValid;
 };
 
 
@@ -98,7 +103,7 @@ private:
     int maxLevel;
 
     std::vector<Quadrant> leafs;
-    std::vector<bool> leafValid;
+   // std::vector<bool> leafValid;
     ankerl::unordered_dense::map<uint64_t, int> leafIndex;
 
     std::vector<std::vector<int>> graph;

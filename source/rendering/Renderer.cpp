@@ -23,7 +23,9 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     int x = quad.GetX(); //(512 - quad.GetX()) - length;
     int y = quad.GetY(); //(512 - quad.GetY()) - length;
 
-    DrawRectangleLines(x, y, length, length, PURPLE);
+    Color color = quad.IsValid() ? PURPLE : RED;
+
+    DrawRectangleLines(x, y, length, length, color);
 
     uint64_t code = quad.GetCode();
     std::string codeText = "";
@@ -35,7 +37,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     }
     std::reverse(codeText.begin(), codeText.end());
 
-    //DrawText(codeText.c_str(), x, y, 12, BLUE);
+    DrawText(codeText.c_str(), x, y, 12, BLUE);
 }
 
 
@@ -48,19 +50,17 @@ void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
         
         Renderer::DrawQuadrant(leafs[i], quadtree.GetResolution());
         
-        //int x1 = leafs[i].GetX() + leafs[i].GetWidth() / 2;
-        //int y1 = leafs[i].GetY() + leafs[i].GetHeight() / 2;
         int length1 = 1 << (quadtree.GetResolution() - leafs[i].GetLevel());
         int x1 = leafs[i].GetX() + (length1 / 2); //(512 - quad.GetX()) - length;
         int y1 = leafs[i].GetY() + (length1 / 2); //(512 - quad.GetY()) - length;
     
-        for (int k = 0; k < graph[i].size(); ++k) {
-            int adjIndex = graph[i][k];
-            int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
-            int x2 = leafs[adjIndex].GetX() + length2 / 2;
-            int y2 = leafs[adjIndex].GetY() + length2 / 2;
-            DrawLine(x1, y1, x2, y2, BLUE);
-        } 
+       // for (int k = 0; k < graph[i].size(); ++k) {
+       //     int adjIndex = graph[i][k];
+       //     int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
+       //     int x2 = leafs[adjIndex].GetX() + length2 / 2;
+       //     int y2 = leafs[adjIndex].GetY() + length2 / 2;
+       //     DrawLine(x1, y1, x2, y2, BLUE);
+       // } 
     }
     EndTextureMode();
 }

@@ -13,9 +13,10 @@
 #include "GridEnvironment.hpp"
 
 // Quadtree Leaf
-Quadrant::Quadrant(uint64_t locationCode, int level) {
+Quadrant::Quadrant(uint64_t locationCode, int level, bool isValid) {
     this->locationCode = locationCode;
     this->level = level;
+    this->isValid = isValid;
 }
 
 // Quadtree
@@ -84,55 +85,69 @@ void Quadtree::BuildRegion(const GridEnvironment& grid) {
     const size_t size = this->resolution * 3 + 1;
 
     // TODO: replace with a calculated the bounds of this
-    std::vector<Region> stack(size);
-    std::vector<int> levels(size);
-    std::vector<uint64_t> zcodes(size);
     uint64_t head = 0;
     uint64_t x, y;
     Region region;
 
-    int maxHead = 0;
+    
+    bool lastValid = grid.IsValid(0);
+    uint64_t lastIndex = 0;
+    uint64_t mIndex;
 
-    for (uint64_t z = 0; z < grid.GetWidth() * grid.GetHeight(); z += numQuads) {
-        for (int i = 0; i < numQuads; ++i) {
-            BinaryMath::Deinterleave(z + i, x, y);
-            levels[head] = this->resolution;
-            zcodes[head] = z;
-            stack[head++] = grid.IsValid(y * grid.GetWidth() + x) ? Region::Valid : Region::Block;
-            maxHead = head > maxHead ? head : maxHead;
-        }
+    for (uint64_t z = 1; z < grid.GetWidth() * grid.GetHeight(); z += numQuads) {
+        BinaryMath::Deinterleave(z, x, y);
+        bool currentValid = grid.IsValid(y * grid.GetWidth() + x);
 
-        do {
-            head -= numQuads;
-            region = stack[head + 0];
-            
-            for (int j = 1; j < numQuads; ++j) {
-                if (stack[head + j] != region) {
-                    region = Region::Mixed;
-                    // TODO: Room for optimization here
-                    // Quadtree Leafs
-                    for (int k = 0; k < numQuads; ++k) {
-                        if (stack[head + k] == Region::Mixed) continue;
+        if (currentValid != lastValid) {
+            mIndex = z - 1;
+            int num2Shift = 0;
 
-                        int level = levels[head + k];
+            std::printf("LAST %lb\n", lastIndex);
 
-                        uint64_t code = zcodes[head + k];
+            while (mIndex != 0 && (mIndex << (num2Shift * 2)) > lastIndex) {
+                int k = 0b11 & mIndex;
+                std::printf("-- mindex %lb\n", mIndex);
 
-                        this->leafIndex.emplace(code, this->leafs.size());
-                        this->leafs.emplace_back(code, level);
-                        this->leafValid.emplace_back(stack[head + k] == Region::Valid);
+                while (k > 0) {
+                    uint64_t code = (((mIndex >> 2) << 2) + (--k)) << (num2Shift * 2);
+                    if (code < lastIndex) {
+                        // correct for the extra the small quadrants
+                        uint64_t upperCode = (((mIndex >> 2) << 2) + (k + 1)) << 2; // revert code
+                        code = lastIndex >> ((num2Shift - 1) * 2); // get shifted
+                        while (code < upperCode) {
+
+                            if (this->leafIndex.find(code << ((num2Shift - 1) * 2)) != this->leafIndex.end()) {
+                                std::printf("!2 faulted code %lb\n", code);
+                            }
+
+                            std::printf("@2 code %lb level %i\n", code << ((num2Shift - 1) * 2), this->resolution - num2Shift + 1);
+                            this->leafIndex.emplace(code << ((num2Shift - 1) * 2), this->leafs.size());
+                            this->leafs.emplace_back(code << ((num2Shift - 1) * 2), this->resolution - num2Shift + 1, lastValid);
+                            
+                            code++;
+                        }
+                        break;
                     }
 
-                    break; 
+                    if (this->leafIndex.find(code) != this->leafIndex.end()) {
+                        std::printf("!! faulted code %lb\n", code);
+                    }
+                    
+                    std::printf("@ lastValid %i code %lb level %i\n", lastValid, code, this->resolution - num2Shift);
+                    this->leafIndex.emplace(code, this->leafs.size());
+                    this->leafs.emplace_back(code, this->resolution - num2Shift, lastValid);
+                    
+                    if (code == lastIndex) break;
                 }
+
+                mIndex >>= 2;
+                num2Shift++;
             }
 
-            levels[head] -= 1;
-            stack[head++] = region;
+            lastIndex = z - 1;
+            lastValid = currentValid;
+        }
 
-            maxHead = head > maxHead ? head : maxHead;
-
-        } while (head >= numQuads && levels[head - 1] == levels[head - 4]);
     }
 }
 
@@ -195,10 +210,10 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
     this->graph.resize(this->leafs.size());
 
     for (int i = 0; i < this->leafs.size(); ++i) {
-        if (!this->leafValid[i]) continue;
+        if (!this->leafs[i].IsValid()) continue;
 
-        int level = this->leafs[i].GetLevel();
-        uint64_t code = this->leafs[i].GetCode();
+        const int level = this->leafs[i].GetLevel();
+        const uint64_t code = this->leafs[i].GetCode();
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
         
         for (int k = 0; k < 4; ++k) {
@@ -214,7 +229,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
 
                 int adjacentIndex = adjacentIterator->second;
                 
-                if (!this->leafValid[adjacentIndex]) continue;
+                if (!this->leafs[adjacentIndex].IsValid()) continue;
 
                 this->graph[i].push_back(adjacentIndex);
             } else {
@@ -226,7 +241,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
                 
                 int adjacentIndex = adjacentIterator->second;
 
-                if (!this->leafValid[adjacentIndex]) continue;
+                if (!this->leafs[adjacentIndex].IsValid()) continue;
 
                 this->graph[i].push_back(adjacentIndex);
                 this->graph[adjacentIndex].push_back(i);
@@ -239,8 +254,8 @@ void Quadtree::Build(const GridEnvironment& grid) {
  
     this->BuildRegion(grid);
     
-    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
-
-    this->BuildLevelDifferences(mapIdentifiers);
-    this->BuildGraph(mapIdentifiers);
+//    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
+//
+//    this->BuildLevelDifferences(mapIdentifiers);
+//    this->BuildGraph(mapIdentifiers);
 }
