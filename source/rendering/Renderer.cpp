@@ -26,7 +26,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     Color color = quad.IsValid() ? PURPLE : RED;
 
     DrawRectangleLines(x, y, length, length, color);
-
+    
     uint64_t code = quad.GetCode();
     std::string codeText = "";
 
@@ -37,7 +37,7 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     }
     std::reverse(codeText.begin(), codeText.end());
 
-    DrawText(codeText.c_str(), x, y, 12, BLUE);
+  //  DrawText(codeText.c_str(), x, y, 12, BLUE);
 }
 
 

@@ -80,6 +80,8 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
     return parent.dir[d] - 1;
 }
 
+
+
 void Quadtree::BuildRegion(const GridEnvironment& grid) {
     const char numQuads = 4;
     const size_t size = this->resolution * 3 + 1;
@@ -93,62 +95,71 @@ void Quadtree::BuildRegion(const GridEnvironment& grid) {
     bool lastValid = grid.IsValid(0);
     uint64_t lastIndex = 0;
     uint64_t mIndex;
+    int lastLevel;
 
-    for (uint64_t z = 1; z < grid.GetWidth() * grid.GetHeight(); z += numQuads) {
+    FILE *f;
+
+    f = fopen("error.txt", "w+");
+
+    for (uint64_t z = 1; z < grid.GetWidth() * grid.GetHeight(); z++) {
         BinaryMath::Deinterleave(z, x, y);
         bool currentValid = grid.IsValid(y * grid.GetWidth() + x);
+        if (currentValid == lastValid) continue;
 
-        if (currentValid != lastValid) {
-            mIndex = z - 1;
-            int num2Shift = 0;
+        mIndex = z;
+        int num2Shift = 0;
 
-            std::printf("LAST %lb\n", lastIndex);
+        std::fprintf(f, "LAST %lb\n", lastIndex);
 
-            while (mIndex != 0 && (mIndex << (num2Shift * 2)) > lastIndex) {
-                int k = 0b11 & mIndex;
-                std::printf("-- mindex %lb\n", mIndex);
+        while (mIndex != 0 && (mIndex << (num2Shift * 2)) > lastIndex) {
+            int k = 0b11 & mIndex;
+            std::fprintf(f, "-- mindex %lb\n", mIndex);
 
-                while (k > 0) {
-                    uint64_t code = (((mIndex >> 2) << 2) + (--k)) << (num2Shift * 2);
-                    if (code < lastIndex) {
-                        // correct for the extra the small quadrants
-                        uint64_t upperCode = (((mIndex >> 2) << 2) + (k + 1)) << 2; // revert code
-                        code = lastIndex >> ((num2Shift - 1) * 2); // get shifted
-                        while (code < upperCode) {
-
-                            if (this->leafIndex.find(code << ((num2Shift - 1) * 2)) != this->leafIndex.end()) {
-                                std::printf("!2 faulted code %lb\n", code);
-                            }
-
-                            std::printf("@2 code %lb level %i\n", code << ((num2Shift - 1) * 2), this->resolution - num2Shift + 1);
-                            this->leafIndex.emplace(code << ((num2Shift - 1) * 2), this->leafs.size());
-                            this->leafs.emplace_back(code << ((num2Shift - 1) * 2), this->resolution - num2Shift + 1, lastValid);
-                            
-                            code++;
-                        }
-                        break;
-                    }
-
-                    if (this->leafIndex.find(code) != this->leafIndex.end()) {
-                        std::printf("!! faulted code %lb\n", code);
-                    }
-                    
-                    std::printf("@ lastValid %i code %lb level %i\n", lastValid, code, this->resolution - num2Shift);
-                    this->leafIndex.emplace(code, this->leafs.size());
-                    this->leafs.emplace_back(code, this->resolution - num2Shift, lastValid);
-                    
-                    if (code == lastIndex) break;
+            while (k > 0) {
+                uint64_t code = (((mIndex >> 2) << 2) + (--k)) << (num2Shift * 2);
+                if (code < lastIndex) {
+                    // correct for the extra the small quadrants
+                   uint64_t upperCode = (((mIndex >> 2) << 2) + (k + 1)) << ((lastLevel - (this->resolution - num2Shift)) * 2); // revert code
+                   uint64_t shiftCode = lastIndex >> ((this->resolution - lastLevel) * 2); // get shifted
+                   std::fprintf(f, "&& Shifted %lb upperCode %lb lastLevel %i ns %i\n", shiftCode, upperCode, lastLevel, num2Shift);
+                   std::fprintf(f, "^^ current level %i last level %i upperCodeShift %lb\n", this->resolution - num2Shift, lastLevel, ((mIndex >> 2) << 2) + (k + 1));
+                   while (shiftCode < upperCode) {
+                       code = shiftCode << ((this->resolution - lastLevel) * 2);
+                       if (this->leafIndex.find(code) != this->leafIndex.end()) {
+                           std::fprintf(f, "!2 faulted code %lb\n", code);
+                       }
+                       std::fprintf(f, "@2 code %lb level %i\n", code, lastLevel);
+                       this->leafIndex.emplace(code, this->leafs.size());
+                       this->leafs.emplace_back(code, lastLevel, lastValid);
+                       
+                       shiftCode++;
+                   }
+                   break;
                 }
 
-                mIndex >>= 2;
-                num2Shift++;
+
+                if (this->leafIndex.find(code) != this->leafIndex.end()) {
+                    std::fprintf(f, "!! faulted code %lb\n", code);
+                }
+                
+                std::fprintf(f, "@ lastValid %i code %lb level %i\n", lastValid, code, this->resolution - num2Shift);
+                this->leafIndex.emplace(code, this->leafs.size());
+                this->leafs.emplace_back(code, this->resolution - num2Shift, lastValid);
+                
+                if (code == lastIndex) break;
             }
 
-            lastIndex = z - 1;
-            lastValid = currentValid;
+            mIndex >>= 2;
+            num2Shift++;
         }
 
+
+        lastIndex = z;
+        lastValid = currentValid;
+        lastLevel = this->resolution - num2Shift + 1;
     }
+
+    std::printf("num leafs: %li\n", this->leafs.size());
 }
 
 
