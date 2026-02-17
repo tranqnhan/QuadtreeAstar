@@ -7,12 +7,6 @@
 #include "BinaryMath.hpp"
 #include "GridEnvironment.hpp"
 
-/**
- * Implementation of Linear Quadtree with Level Differences from
- * A Constant-Time Algorithm for Finding Neighbors in Quadtrees
- * by Kunio Aizawa and Shojiro Tanaka 
- */
-
 struct QuadrantIdentifier {
     uint64_t locationCode;
     int level;
@@ -68,23 +62,16 @@ private:
 };
 
 
-enum Region {
-    Mixed,
-    Valid,
-    Block
-};
-
-
 class Quadtree {
 public:
     Quadtree(int resolution);
+
     void Build(const GridEnvironment& grid);
     
     const std::vector<Quadrant>& GetLeafs() const {
         return leafs;
     }
-
-        
+    
     int GetResolution() const {
         return resolution;
     }
@@ -94,6 +81,7 @@ public:
     }
 
 private:
+
     uint64_t tx;
     uint64_t ty;
 
@@ -108,6 +96,9 @@ private:
 
     std::vector<std::vector<int>> graph;
         
+    void SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid);
+    void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid);
+    
     void BuildRegion(const GridEnvironment& grid);
     void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);
     void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);

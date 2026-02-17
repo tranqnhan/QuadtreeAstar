@@ -11,6 +11,7 @@
 #include "Quadtree.hpp"
 #include "Renderer.hpp"
 
+Image Renderer::quadtreeImage;
 RenderTexture Renderer::quadtreeLeafsTexture;
 
 void Renderer::Init() {
@@ -25,7 +26,11 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
 
     Color color = quad.IsValid() ? PURPLE : RED;
 
-    DrawRectangleLines(x, y, length, length, color);
+    for (int i = y; i < y + length; ++i) {
+        for (int j = x; j < x + length; ++j) {
+            ImageDrawPixel(&Renderer::quadtreeImage, j, i, color);
+        }
+    }
     
     uint64_t code = quad.GetCode();
     std::string codeText = "";
@@ -42,7 +47,8 @@ void Renderer::DrawQuadrant(const Quadrant& quad, int resolution) {
 
 
 void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
-    BeginTextureMode(Renderer::quadtreeLeafsTexture);
+    Renderer::quadtreeImage = GenImageColor(WINDOW_W, WINDOW_H, WHITE);
+
     const std::vector<Quadrant>& leafs = quadtree.GetLeafs();
     const std::vector<std::vector<int>>& graph = quadtree.GetGraph();
 
@@ -50,19 +56,24 @@ void Renderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
         
         Renderer::DrawQuadrant(leafs[i], quadtree.GetResolution());
         
-        int length1 = 1 << (quadtree.GetResolution() - leafs[i].GetLevel());
-        int x1 = leafs[i].GetX() + (length1 / 2); //(512 - quad.GetX()) - length;
-        int y1 = leafs[i].GetY() + (length1 / 2); //(512 - quad.GetY()) - length;
-    
-       // for (int k = 0; k < graph[i].size(); ++k) {
-       //     int adjIndex = graph[i][k];
-       //     int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
-       //     int x2 = leafs[adjIndex].GetX() + length2 / 2;
-       //     int y2 = leafs[adjIndex].GetY() + length2 / 2;
-       //     DrawLine(x1, y1, x2, y2, BLUE);
-       // } 
+        if (quadtree.GetGraph().size() > 0) {
+            int length1 = 1 << (quadtree.GetResolution() - leafs[i].GetLevel());
+            int x1 = leafs[i].GetX() + (length1 / 2); //(512 - quad.GetX()) - length;
+            int y1 = leafs[i].GetY() + (length1 / 2); //(512 - quad.GetY()) - length;
+        
+            for (int k = 0; k < graph[i].size(); ++k) {
+                int adjIndex = graph[i][k];
+                int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
+                int x2 = leafs[adjIndex].GetX() + length2 / 2;
+                int y2 = leafs[adjIndex].GetY() + length2 / 2;
+                //DrawLine(x1, y1, x2, y2, BLUE);
+            } 
+        }
     }
-    EndTextureMode();
+
+
+    UpdateTexture(Renderer::quadtreeLeafsTexture.texture, Renderer::quadtreeImage.data); // Initial upload
+
 }
 
 
@@ -73,6 +84,6 @@ void Renderer::DrawQuadtreeLeafs() {
         .x = 0,
         .y = 0,
         .width = WINDOW_W,
-        .height = -(WINDOW_H),
+        .height = WINDOW_H,
     }, (Vector2) {0, 0}, WHITE);
 }

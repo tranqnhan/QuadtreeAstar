@@ -12,5 +12,6 @@ public:
     static void DrawQuadtreeLeafs();
 
 private:
+    static Image quadtreeImage;
     static RenderTexture quadtreeLeafsTexture;
 };

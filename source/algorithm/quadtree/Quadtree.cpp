@@ -1,9 +1,10 @@
 #include <cmath>
 #include <cstdint>
-
 #include <cstdio>
+
 #include <queue>
 #include <vector>
+#include <bits/stdc++.h>
 
 #include <ankerl/unordered_dense.h>
 #include <raylib.h>
@@ -81,87 +82,96 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 }
 
 
+void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid) {
+    const uint64_t mask = 0xFFFFFFFFFFFFFFE;
+    int shift = __builtin_ctz(fromIndex) & mask;
+    uint64_t tempIndex = fromIndex >> shift;
 
-void Quadtree::BuildRegion(const GridEnvironment& grid) {
-    const char numQuads = 4;
-    const size_t size = this->resolution * 3 + 1;
-
-    // TODO: replace with a calculated the bounds of this
-    uint64_t head = 0;
-    uint64_t x, y;
-    Region region;
-
+    uint64_t code; 
     
-    bool lastValid = grid.IsValid(0);
-    uint64_t lastIndex = 0;
-    uint64_t mIndex;
-    int lastLevel;
+    while (tempIndex != 0) {
+        int k = 0b11 & tempIndex;
 
-    FILE *f;
-
-    f = fopen("error.txt", "w+");
-
-    for (uint64_t z = 1; z < grid.GetWidth() * grid.GetHeight(); z++) {
-        BinaryMath::Deinterleave(z, x, y);
-        bool currentValid = grid.IsValid(y * grid.GetWidth() + x);
-        if (currentValid == lastValid) continue;
-
-        mIndex = z;
-        int num2Shift = 0;
-
-        std::fprintf(f, "LAST %lb\n", lastIndex);
-
-        while (mIndex != 0 && (mIndex << (num2Shift * 2)) > lastIndex) {
-            int k = 0b11 & mIndex;
-            std::fprintf(f, "-- mindex %lb\n", mIndex);
-
-            while (k > 0) {
-                uint64_t code = (((mIndex >> 2) << 2) + (--k)) << (num2Shift * 2);
-                if (code < lastIndex) {
-                    // correct for the extra the small quadrants
-                   uint64_t upperCode = (((mIndex >> 2) << 2) + (k + 1)) << ((lastLevel - (this->resolution - num2Shift)) * 2); // revert code
-                   uint64_t shiftCode = lastIndex >> ((this->resolution - lastLevel) * 2); // get shifted
-                   std::fprintf(f, "&& Shifted %lb upperCode %lb lastLevel %i ns %i\n", shiftCode, upperCode, lastLevel, num2Shift);
-                   std::fprintf(f, "^^ current level %i last level %i upperCodeShift %lb\n", this->resolution - num2Shift, lastLevel, ((mIndex >> 2) << 2) + (k + 1));
-                   while (shiftCode < upperCode) {
-                       code = shiftCode << ((this->resolution - lastLevel) * 2);
-                       if (this->leafIndex.find(code) != this->leafIndex.end()) {
-                           std::fprintf(f, "!2 faulted code %lb\n", code);
-                       }
-                       std::fprintf(f, "@2 code %lb level %i\n", code, lastLevel);
-                       this->leafIndex.emplace(code, this->leafs.size());
-                       this->leafs.emplace_back(code, lastLevel, lastValid);
-                       
-                       shiftCode++;
-                   }
-                   break;
-                }
-
-
-                if (this->leafIndex.find(code) != this->leafIndex.end()) {
-                    std::fprintf(f, "!! faulted code %lb\n", code);
-                }
-                
-                std::fprintf(f, "@ lastValid %i code %lb level %i\n", lastValid, code, this->resolution - num2Shift);
-                this->leafIndex.emplace(code, this->leafs.size());
-                this->leafs.emplace_back(code, this->resolution - num2Shift, lastValid);
-                
-                if (code == lastIndex) break;
-            }
-
-            mIndex >>= 2;
-            num2Shift++;
+        while (k > 0 && k < 4) {
+            code = (tempIndex++) << shift;
+            
+            if (code >= upperBound) return;
+            
+            this->leafIndex.emplace(code, this->leafs.size());
+            this->leafs.emplace_back(code, this->resolution - (shift >> 1), oldValid);
+            
+            k++;
         }
 
-
-        lastIndex = z;
-        lastValid = currentValid;
-        lastLevel = this->resolution - num2Shift + 1;
+        tempIndex >>= 2;
+        shift+=2;
     }
-
-    std::printf("num leafs: %li\n", this->leafs.size());
 }
 
+
+void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid) {
+    const uint64_t mask = 0xFFFFFFFFFFFFFFE;
+    int shift = __builtin_ctz(fromIndex) & mask;
+    uint64_t tempIndex = fromIndex >> shift;
+
+    uint64_t code; 
+    
+    while (tempIndex != 0) {
+        int k = 0b11 & tempIndex;
+
+        while (k > 0) {
+            code = (--tempIndex) << shift;
+            
+            if (code < lowerBound) {
+                code = (++tempIndex) << shift;
+                this->SubdivideRegionSmall(lowerBound, code, oldValid);
+                return;
+            }
+
+            this->leafIndex.emplace(code, this->leafs.size());
+            this->leafs.emplace_back(code, this->resolution - (shift >> 1), oldValid);
+            
+            if (code == lowerBound) return;
+            
+            k--;
+        }
+
+        tempIndex >>= 2;
+        shift += 2;
+    }
+}
+
+
+void Quadtree::BuildRegion(const GridEnvironment& grid) {
+     uint64_t x, y;
+    
+     bool oldValid = grid.IsValid(0);
+     uint64_t oldIndex = 0;
+
+    const uint64_t size = grid.GetWidth() * grid.GetHeight();
+
+    for (uint64_t newIndex = 1; newIndex < size; ++newIndex) {
+        BinaryMath::Deinterleave(newIndex, x, y);
+        bool newValid = grid.IsValid(y * grid.GetWidth() + x);
+
+        if (newValid == oldValid) continue;
+
+        this->SubdivideRegionLarge(newIndex, oldIndex, oldValid);
+
+        oldIndex = newIndex;
+        oldValid = newValid;
+    }
+
+    this->SubdivideRegionSmall(oldIndex, size, oldValid);
+}
+
+
+
+/**
+ * Implementation of Linear Quadtree with Level Differences from
+ * A Constant-Time Algorithm for Finding Neighbors in Quadtrees
+ * by Kunio Aizawa and Shojiro Tanaka 
+ */
 
 void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers) {
 
@@ -193,7 +203,7 @@ void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, Quad
             adjacentShift -= 2;
             
             for (uint64_t k = 0; k < 4; ++k) {
-                uint64_t childLocationCode = leafLocationCode | (k << (2 * (this->resolution - parentQuadrant.level - 1)));
+                uint64_t childLocationCode = leafLocationCode | (k << adjacentShift);
             
                 if (parentQuadrant.level + 1 < this->resolution) {
                     codes.emplace(childLocationCode);
@@ -262,11 +272,38 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
 }
 
 void Quadtree::Build(const GridEnvironment& grid) {
- 
+
+    auto start = std::chrono::high_resolution_clock::now();  // Timer
+
+    // ---------- //
     this->BuildRegion(grid);
+    // ---------- //
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "build quadtree: " << duration.count() << " us" << std::endl;
     
-//    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
-//
-//    this->BuildLevelDifferences(mapIdentifiers);
-//    this->BuildGraph(mapIdentifiers);
+    start = std::chrono::high_resolution_clock::now(); // Timer
+
+    // ---------- //
+    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
+    this->BuildLevelDifferences(mapIdentifiers);
+    // ---------- //
+
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "build level differences: " << duration.count() << " us" << std::endl;
+
+    start = std::chrono::high_resolution_clock::now(); // Timer
+    
+    // ---------- //
+    this->BuildGraph(mapIdentifiers);
+    // ---------- //
+
+    stop = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "build graph: " << duration.count() << " us" << std::endl;
+
+
+    std::printf("num leafs %li\n", this->leafs.size());
 }

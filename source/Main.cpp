@@ -39,13 +39,7 @@ void Init(char* filename) {
 
     quadtree = std::make_unique<Quadtree>(512);
 
-    auto start = std::chrono::high_resolution_clock::now();
     quadtree->Build(grid);
-    auto stop = std::chrono::high_resolution_clock::now();
-
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-
-    std::cout << duration.count() << std::endl;
 
     Renderer::UpdateQuadtreeLeafs(*(quadtree.get()));
 
