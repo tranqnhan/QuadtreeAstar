@@ -72,7 +72,7 @@ public:
 
     void Init(int resolution);
 
-    void Build(const GridEnvironment& grid);
+    void Build(const GridEnvironment& grid, int maxLevel);
     
     const std::vector<Quadrant>& GetLeafs() const {
         return leafs;
@@ -106,8 +106,8 @@ private:
     void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid);
     
     void BuildRegion(const GridEnvironment& grid);
-    void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);
-    void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers);
+    void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
+    void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
 
     uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const; 

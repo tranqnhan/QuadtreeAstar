@@ -168,7 +168,7 @@ void Quadtree::BuildRegion(const GridEnvironment& grid) {
  * by Kunio Aizawa and Shojiro Tanaka 
  */
 
-void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers) {
+void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel) {
 
     // Adjacent level differences
     std::queue<uint64_t> codes;
@@ -181,47 +181,50 @@ void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, Quad
 
     while (codes.size() > 0) {
         uint64_t parentLocationCode = codes.front();
-        const QuadrantIdentifier parentQuadrant = mapIdentifiers.find(parentLocationCode)->second;
 
+        codes.pop();
+
+        const QuadrantIdentifier parentQuadrant = mapIdentifiers.find(parentLocationCode)->second;
+        
         uint64_t leafLocationCode = parentLocationCode;// << (2 * (this->resolution - parentQuadrant.level));
         auto leafLevelIterator = this->leafIndex.find(leafLocationCode);
 
-        if (leafLevelIterator == this->leafIndex.end() 
-            || this->leafs[leafLevelIterator->second].GetLevel() != parentQuadrant.level) {
+        if (leafLevelIterator != this->leafIndex.end() 
+            && this->leafs[leafLevelIterator->second].GetLevel() == parentQuadrant.level) continue;
             
-            adjacentShift = 2 * (this->resolution - parentQuadrant.level);
+        if (parentQuadrant.level + 1 > maxLevel) continue;
 
-            for (uint64_t i = 0; i < 4; ++i) {
-                this->IncrementAdjacentQuad(mapIdentifiers, parentQuadrant, i, adjacentShift);
-            }
-            
-            adjacentShift -= 2;
-            
-            for (uint64_t k = 0; k < 4; ++k) {
-                uint64_t childLocationCode = leafLocationCode | (k << adjacentShift);
-            
-                if (parentQuadrant.level + 1 < this->resolution) {
-                    codes.emplace(childLocationCode);
-                }
+        adjacentShift = 2 * (this->resolution - parentQuadrant.level);
 
-                auto childQuadrant = QuadrantIdentifier(childLocationCode, parentQuadrant.level + 1);
-                childQuadrant.dir[k >> 1] = this->GetChildLevelDiff(parentQuadrant, k >> 1);
-                childQuadrant.dir[k | 2] = this->GetChildLevelDiff(parentQuadrant, k | 2);
-                childQuadrant.dir[(k ^ 3) >> 1] = 0;
-                childQuadrant.dir[(k ^ 3) | 2] = 0;
-
-                mapIdentifiers.insert_or_assign(childLocationCode, childQuadrant);
-             
-                this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k >> 1, adjacentShift);
-                this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k | 2, adjacentShift);      
-            }
+        for (uint64_t i = 0; i < 4; ++i) {
+            this->IncrementAdjacentQuad(mapIdentifiers, parentQuadrant, i, adjacentShift);
         }
+        
+        adjacentShift -= 2;
+        
+        for (uint64_t k = 0; k < 4; ++k) {
+            uint64_t childLocationCode = leafLocationCode | (k << adjacentShift);
+        
+            if (parentQuadrant.level + 1 < this->resolution) {
+                codes.emplace(childLocationCode);
+            }
 
-        codes.pop();
+            auto childQuadrant = QuadrantIdentifier(childLocationCode, parentQuadrant.level + 1);
+            childQuadrant.dir[k >> 1] = this->GetChildLevelDiff(parentQuadrant, k >> 1);
+            childQuadrant.dir[k | 2] = this->GetChildLevelDiff(parentQuadrant, k | 2);
+            childQuadrant.dir[(k ^ 3) >> 1] = 0;
+            childQuadrant.dir[(k ^ 3) | 2] = 0;
+
+            mapIdentifiers.insert_or_assign(childLocationCode, childQuadrant);
+            
+            this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k >> 1, adjacentShift);
+            this->IncrementAdjacentQuad(mapIdentifiers, childQuadrant, k | 2, adjacentShift);      
+        }
+    
     } 
 }
 
-void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers) {
+void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel) {
   // Build graphs
     this->graph.resize(this->leafs.size());
 
@@ -229,6 +232,9 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
         if (!this->leafs[i].IsValid()) continue;
 
         const int level = this->leafs[i].GetLevel();
+
+        if (level > maxLevel) continue;
+
         const uint64_t code = this->leafs[i].GetCode();
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
         
@@ -245,7 +251,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
 
                 int adjacentIndex = adjacentIterator->second;
                 
-                if (!this->leafs[adjacentIndex].IsValid()) continue;
+                if (!this->leafs[adjacentIndex].IsValid() || this->leafs[adjacentIndex].GetLevel() > maxLevel) continue;
 
                 this->graph[i].push_back(adjacentIndex);
             } else {
@@ -257,7 +263,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
                 
                 int adjacentIndex = adjacentIterator->second;
 
-                if (!this->leafs[adjacentIndex].IsValid()) continue;
+                if (!this->leafs[adjacentIndex].IsValid()|| this->leafs[adjacentIndex].GetLevel() > maxLevel) continue;
 
                 this->graph[i].push_back(adjacentIndex);
                 this->graph[adjacentIndex].push_back(i);
@@ -266,7 +272,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
     }
 }
 
-void Quadtree::Build(const GridEnvironment& grid) {
+void Quadtree::Build(const GridEnvironment& grid, int maxLevel) {
     this->graph.clear();
     this->leafs.clear();
     this->leafIndex.clear();
@@ -278,11 +284,11 @@ void Quadtree::Build(const GridEnvironment& grid) {
     if (this->leafs.size() > 0) {
         // ---------- //
         ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
-        this->BuildLevelDifferences(mapIdentifiers);
+        this->BuildLevelDifferences(mapIdentifiers, maxLevel);
         // ---------- //
 
         // ---------- //
-        this->BuildGraph(mapIdentifiers);
+        this->BuildGraph(mapIdentifiers, maxLevel);
         // ---------- //
     }
 

@@ -1,3 +1,5 @@
+#include <cmath>
+#include <string>
 #define RAYLIB_IMPLEMENTATION
 #include <raylib.h>
 
@@ -11,6 +13,7 @@
 bool isGameEnd;
 bool quadtreeBuild;
 bool quadtreeRender;
+int maxLevel;
 
 Drawpad drawpad;
 Quadtree quadtree;
@@ -32,9 +35,11 @@ void Init() {
     drawpad.Init();
     grid.Init(drawpad.GetPixels(), WINDOW_H, WINDOW_H);
 
-    quadtreeRender = false;
-    quadtreeBuild = false;
     isGameEnd = false;
+    quadtreeBuild = false;
+    quadtreeRender = false;
+    
+    maxLevel = std::log2(WINDOW_W);
 }
 
 
@@ -59,13 +64,23 @@ void Input() {
         quadtreeRender = true;
     }
 
+    if (IsKeyPressed(KEY_X)) {
+        maxLevel = maxLevel - 1 > 0 ? maxLevel - 1 : maxLevel;
+        quadtreeBuild = true;
+    }    
+
+    if (IsKeyPressed(KEY_Z)) {
+        maxLevel = maxLevel + 1 > std::log2(WINDOW_W) ? std::log2(WINDOW_W) : maxLevel + 1;
+        quadtreeBuild = true;
+    }    
+
     drawpad.Input();
 }
 
 // Main loop update
 void Update(float deltaTime) {
     if (quadtreeBuild) {
-        quadtree.Build(grid);
+        quadtree.Build(grid, maxLevel);
         quadtreeRenderer.UpdateQuadtreeLeafs(quadtree);
     }
     
@@ -84,8 +99,8 @@ void Render() {
     if (quadtreeRender) {
         quadtreeRenderer.DrawQuadtreeLeafs();
     }
-
-    DrawFPS(0, 0);
+    
+    DrawText(("Max Level: " + std::to_string(maxLevel)).c_str(), 0, 0, 24, DARKBLUE);
 
     EndDrawing();
 }
