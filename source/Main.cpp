@@ -64,12 +64,12 @@ void Input() {
         quadtreeRender = true;
     }
 
-    if (IsKeyPressed(KEY_X)) {
+    if (IsKeyPressed(KEY_Z)) {
         maxLevel = maxLevel - 1 > 0 ? maxLevel - 1 : maxLevel;
         quadtreeBuild = true;
     }    
 
-    if (IsKeyPressed(KEY_Z)) {
+    if (IsKeyPressed(KEY_X)) {
         maxLevel = maxLevel + 1 > std::log2(WINDOW_W) ? std::log2(WINDOW_W) : maxLevel + 1;
         quadtreeBuild = true;
     }    

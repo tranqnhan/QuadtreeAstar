@@ -53,12 +53,12 @@ void Drawpad::Input() {
         currentMode = DrawpadMode::DO_NOTHING;
     }
 
-    if (IsKeyDown(KEY_A)) {
+    if (IsKeyDown(KEY_S)) {
         radius += 1;
         radius = radius > 200 ? 200 : radius;
     }
 
-    if (IsKeyDown(KEY_S)) {
+    if (IsKeyDown(KEY_A)) {
         radius -= 1;
         radius = radius < 2 ? 2 : radius;
     }
