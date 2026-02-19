@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>Quadtree A*</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    
+    <div class="main">
+        
+        <h2>Quadtree A*</h2>
+
+        <canvas id="canvas"></canvas>
+
+        <div> Note: Right now, it only build quadtree and graph. No A* yet. </div>
+
+        <div class="multiline">
+            <b>Controls:</b>
+            <b>Left click</b> - Draw/erase on canvas
+            <b>E</b> - Toggle erase/draw
+            <b>A</b> - Increase brush size
+            <b>S</b> - Decrease brush size
+        </div>
+
+        <a href="https://github.com/tranqnhan/QuadtreeAstar">https://github.com/tranqnhan/QuadtreeAstar</a>
+    </div>
+
+
+    <script type="module">
+        // Import the modularized JS created by Emscripten
+        import createModule from './QuadtreeAstar.js';
+
+        // Wait for the module to finish loading
+        const Module = await createModule({
+            canvas: document.getElementById('canvas')  // pass your canvas
+        });
+
+        console.log("WASM loaded and ready");
+
+        // Do NOT call main(); raylib automatically starts the main loop
+    </script>
+
+</body>
+</html>

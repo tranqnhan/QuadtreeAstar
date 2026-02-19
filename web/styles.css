@@ -1,0 +1,15 @@
+
+body {
+    background-color: coral;
+}
+
+.main {
+    display: flex;                
+    flex-direction: column;
+    justify-content: center;      
+    align-items: center;          
+}
+
+.multiline {
+  white-space: pre-wrap;
+}

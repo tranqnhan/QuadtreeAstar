@@ -33,7 +33,11 @@ struct QuadrantIdentifier {
  */
 class Quadrant {
 public:
-    Quadrant(uint64_t locationCode, int level, bool isValid);
+    Quadrant(uint64_t locationCode, int level, bool isValid) :
+        locationCode(locationCode),
+        level(level),
+        isValid(isValid) 
+    {}
 
     int GetX() const {
         return BinaryMath::Deinterleave(this->locationCode);
@@ -64,7 +68,9 @@ private:
 
 class Quadtree {
 public:
-    Quadtree(int resolution);
+    Quadtree();
+
+    void Init(int resolution);
 
     void Build(const GridEnvironment& grid);
     

@@ -4,7 +4,6 @@
 
 #include <queue>
 #include <vector>
-#include <bits/stdc++.h>
 
 #include <ankerl/unordered_dense.h>
 #include <raylib.h>
@@ -13,15 +12,12 @@
 #include "Quadtree.hpp"
 #include "GridEnvironment.hpp"
 
-// Quadtree Leaf
-Quadrant::Quadrant(uint64_t locationCode, int level, bool isValid) {
-    this->locationCode = locationCode;
-    this->level = level;
-    this->isValid = isValid;
+
+Quadtree::Quadtree() {
+
 }
 
-// Quadtree
-Quadtree::Quadtree(int size) {
+void Quadtree::Init(int size) {
     this->resolution = (int)std::log2(size);
     this->resolution = resolution > 32 ? 32 : resolution;
     const int push = (32 - resolution) * 2;
@@ -39,7 +35,6 @@ Quadtree::Quadtree(int size) {
     // ty = 10...1010 “10” repeated r times
     this->tx = 0x5555555555555555 >> push;
     this->ty = 0xAAAAAAAAAAAAAAAA >> push;
-    std::printf("push: %i\nres: %i\ntx %lb \nty %lb\n", push, resolution, this->tx, this->ty);
 }
 
 
@@ -238,7 +233,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
         const QuadrantIdentifier& quad = mapIdentifiers.at(code);
         
         for (int k = 0; k < 4; ++k) {
-            int levelDiffs = quad.dir[k];
+            const int levelDiffs = quad.dir[k];
 
             if (levelDiffs > 0) continue;
 
@@ -254,7 +249,7 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
 
                 this->graph[i].push_back(adjacentIndex);
             } else {
-                int shift = 2 * (this->resolution - level - levelDiffs);
+                const int shift = 2 * (this->resolution - level - levelDiffs);
                 uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);
                 
                 auto adjacentIterator = this->leafIndex.find(adjacentCode);
@@ -272,38 +267,24 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
 }
 
 void Quadtree::Build(const GridEnvironment& grid) {
-
-    auto start = std::chrono::high_resolution_clock::now();  // Timer
+    this->graph.clear();
+    this->leafs.clear();
+    this->leafIndex.clear();
 
     // ---------- //
     this->BuildRegion(grid);
     // ---------- //
 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "build quadtree: " << duration.count() << " us" << std::endl;
-    
-    start = std::chrono::high_resolution_clock::now(); // Timer
+    if (this->leafs.size() > 0) {
+        // ---------- //
+        ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
+        this->BuildLevelDifferences(mapIdentifiers);
+        // ---------- //
 
-    // ---------- //
-    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
-    this->BuildLevelDifferences(mapIdentifiers);
-    // ---------- //
+        // ---------- //
+        this->BuildGraph(mapIdentifiers);
+        // ---------- //
+    }
 
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "build level differences: " << duration.count() << " us" << std::endl;
-
-    start = std::chrono::high_resolution_clock::now(); // Timer
-    
-    // ---------- //
-    this->BuildGraph(mapIdentifiers);
-    // ---------- //
-
-    stop = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "build graph: " << duration.count() << " us" << std::endl;
-
-
-    std::printf("num leafs %li\n", this->leafs.size());
+    //std::printf("num leafs %li\n", this->leafs.size());
 }

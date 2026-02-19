@@ -5,27 +5,8 @@
 
 
 class GridEnvironment {
-
 public:
-
-    GridEnvironment(size_t gridWidth, size_t gridHeight) 
-        : gridHeight(gridHeight), gridWidth(gridWidth) 
-    {
-        grid.resize(gridHeight * gridWidth);
-    }
-
-    void SetValid(int i, bool isValid) {
-        if (i < grid.size()) [[likely]] {
-            grid[i] = isValid;
-        }
-    }
-
-    const bool IsValid(int i) const {
-        if (i < grid.size()) [[likely]] {
-            return grid[i];
-        }
-        return false;
-    }
+    virtual const bool IsValid(int i) const = 0;
 
     const size_t GetWidth() const {
         return gridWidth;
@@ -35,8 +16,8 @@ public:
         return gridHeight;
     }
 
-private:
-    std::vector<bool> grid;
+protected:
     size_t gridWidth;
     size_t gridHeight;
 };
+

@@ -1,93 +1,104 @@
-#include <chrono>
-#include <iostream>
-
-#include <memory>
+#define RAYLIB_IMPLEMENTATION
 #include <raylib.h>
 
 #include "Program.hpp"
-#include "GridEnvironment.hpp"
+#include "Drawpad.hpp"
 #include "Quadtree.hpp"
-#include "Renderer.hpp"
+#include "QuadtreeRenderer.hpp"
+#include "ImageGridEnvironment.hpp"
 
-std::unique_ptr<Quadtree> quadtree;
-
-Image image;
-Texture2D texture;
 
 bool isGameEnd;
+bool quadtreeBuild;
+bool quadtreeRender;
+
+Drawpad drawpad;
+Quadtree quadtree;
+QuadtreeRenderer quadtreeRenderer;
+ImageGridEnvironment grid;
+
 
 // Main loop initialization
-void Init(char* filename) {
+void Init() {
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     SetTraceLogLevel(LOG_ERROR); 
-    SetTargetFPS(30);
+    SetConfigFlags(FLAG_WINDOW_TRANSPARENT); 
+    SetTargetFPS(60);
     InitWindow(WINDOW_W, WINDOW_H, WINDOW_N);
     
-    Renderer::Init();
 
+    quadtree.Init(WINDOW_W);
+    quadtreeRenderer.Init();
+    drawpad.Init();
+    grid.Init(drawpad.GetPixels(), WINDOW_H, WINDOW_H);
 
-    image = LoadImage(filename);
-
-    GridEnvironment grid(image.width, image.height);
-
-    Color *pixels = LoadImageColors(image);
-    for (int i = 0; i < image.width * image.height; ++i) {
-        grid.SetValid(i, pixels[i].b > 0);
-    }
-
-    texture = LoadTextureFromImage(image);
-
-    quadtree = std::make_unique<Quadtree>(512);
-
-    quadtree->Build(grid);
-
-    Renderer::UpdateQuadtreeLeafs(*(quadtree.get()));
-
+    quadtreeRender = false;
+    quadtreeBuild = false;
     isGameEnd = false;
-}
-
-
-// Main loop update
-void Update(float deltaTime) {
-
 }
 
 
 // Main loop input
 void Input() {
-
     if (IsKeyPressed(KEY_SPACE)) {
         isGameEnd = true;
+        return;
     }
+
+    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+        quadtreeBuild = true;
+    } else {
+        quadtreeBuild = false;
+    }
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        quadtreeRender = false;
+    }
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        quadtreeRender = true;
+    }
+
+    drawpad.Input();
+}
+
+// Main loop update
+void Update(float deltaTime) {
+    if (quadtreeBuild) {
+        quadtree.Build(grid);
+        quadtreeRenderer.UpdateQuadtreeLeafs(quadtree);
+    }
+    
+    drawpad.Update();
 
 }
 
 
 // Main loop draw
-void Draw() {
-
+void Render() {
     BeginDrawing();
-    ClearBackground(BLACK);
+    ClearBackground(BLANK);
 
-    // Draw
-    DrawTexture(texture, 0, 0, WHITE);
+    drawpad.Render();
 
-    Renderer::DrawQuadtreeLeafs();
+    if (quadtreeRender) {
+        quadtreeRenderer.DrawQuadtreeLeafs();
+    }
 
-    //DrawRectangle(0, 0, 100, 25, BLACK);
-    //DrawFPS(0, 0);
+    DrawFPS(0, 0);
+
     EndDrawing();
 }
 
 
 // Main loop
 int main(int argc, char* argv[]) {
-    Init(argv[1]);
+    Init();
 
     while (!WindowShouldClose() && !isGameEnd) {
         Input();
         Update(GetFrameTime());
-        Draw();
+        Render();
     }
 
     CloseWindow();
