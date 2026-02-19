@@ -4,7 +4,7 @@
 #include "Drawpad.hpp"
 
 Drawpad::Drawpad() {
-    radius = 10;
+    radius = 25;
     currentMousePosition = Vector2();
     currentMode = DrawpadMode::DO_NOTHING;
     toggleErase = false;
@@ -60,7 +60,7 @@ void Drawpad::Input() {
 
     if (IsKeyDown(KEY_S)) {
         radius -= 1;
-        radius = radius < 10 ? 10 : radius;
+        radius = radius < 2 ? 2 : radius;
     }
 
 }

@@ -3,7 +3,15 @@ body {
     background-color: coral;
 }
 
-.main {
+.row {
+    display: flex;                
+    flex-direction: row;
+    justify-content: center;      
+    align-items: center;          
+    gap: 50px;
+}
+
+.col {
     display: flex;                
     flex-direction: column;
     justify-content: center;      
