@@ -77,7 +77,7 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 }
 
 
-void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid) {
+void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel) {
     const uint64_t mask = 0xFFFFFFFFFFFFFFE;
     int shift = __builtin_ctz(fromIndex) & mask;
     uint64_t tempIndex = fromIndex >> shift;
@@ -85,6 +85,7 @@ void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, boo
     uint64_t code; 
     
     while (tempIndex != 0) {
+
         int k = 0b11 & tempIndex;
 
         while (k > 0 && k < 4) {
@@ -92,43 +93,14 @@ void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, boo
             
             if (code >= upperBound) return;
             
-            this->leafIndex.emplace(code, this->leafs.size());
-            this->leafs.emplace_back(code, this->resolution - (shift >> 1), oldValid);
-            
-            k++;
-        }
+            const int level = this->resolution - (shift >> 1);
 
-        tempIndex >>= 2;
-        shift+=2;
-    }
-}
-
-
-void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid) {
-    const uint64_t mask = 0xFFFFFFFFFFFFFFE;
-    int shift = __builtin_ctz(fromIndex) & mask;
-    uint64_t tempIndex = fromIndex >> shift;
-
-    uint64_t code; 
-    
-    while (tempIndex != 0) {
-        int k = 0b11 & tempIndex;
-
-        while (k > 0) {
-            code = (--tempIndex) << shift;
-            
-            if (code < lowerBound) {
-                code = (++tempIndex) << shift;
-                this->SubdivideRegionSmall(lowerBound, code, oldValid);
-                return;
+            if (level <= maxLevel) {
+                this->leafIndex.emplace(code, this->leafs.size());
+                this->leafs.emplace_back(code, level, oldValid);
             }
 
-            this->leafIndex.emplace(code, this->leafs.size());
-            this->leafs.emplace_back(code, this->resolution - (shift >> 1), oldValid);
-            
-            if (code == lowerBound) return;
-            
-            k--;
+            k++;
         }
 
         tempIndex >>= 2;
@@ -137,7 +109,46 @@ void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, boo
 }
 
 
-void Quadtree::BuildRegion(const GridEnvironment& grid) {
+void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid, int maxLevel) {
+    const uint64_t mask = 0xFFFFFFFFFFFFFFE;
+    int shift = __builtin_ctz(fromIndex) & mask;
+    uint64_t tempIndex = fromIndex >> shift;
+
+    uint64_t code; 
+    
+    while (tempIndex != 0) {
+
+        int k = 0b11 & tempIndex;
+
+        while (k > 0) {
+            code = (--tempIndex) << shift;
+            
+            if (code < lowerBound) {
+                code = (++tempIndex) << shift;
+                this->SubdivideRegionSmall(lowerBound, code, oldValid, maxLevel);
+                return;
+            }
+
+            const int level = this->resolution - (shift >> 1);
+
+            if (level <= maxLevel) {
+                this->leafIndex.emplace(code, this->leafs.size());
+                this->leafs.emplace_back(code, level, oldValid);
+            }
+
+            if (code == lowerBound) return;
+            
+            k--;
+        }
+
+        tempIndex >>= 2;
+        shift += 2;
+
+    }
+}
+
+
+void Quadtree::BuildRegion(const GridEnvironment& grid, int maxLevel) {
      uint64_t x, y;
     
      bool oldValid = grid.IsValid(0);
@@ -151,13 +162,13 @@ void Quadtree::BuildRegion(const GridEnvironment& grid) {
 
         if (newValid == oldValid) continue;
 
-        this->SubdivideRegionLarge(newIndex, oldIndex, oldValid);
+        this->SubdivideRegionLarge(newIndex, oldIndex, oldValid, maxLevel);
 
         oldIndex = newIndex;
         oldValid = newValid;
     }
 
-    this->SubdivideRegionSmall(oldIndex, size, oldValid);
+    this->SubdivideRegionSmall(oldIndex, size, oldValid, maxLevel);
 }
 
 
@@ -278,7 +289,7 @@ void Quadtree::Build(const GridEnvironment& grid, int maxLevel) {
     this->leafIndex.clear();
 
     // ---------- //
-    this->BuildRegion(grid);
+    this->BuildRegion(grid, maxLevel);
     // ---------- //
 
     if (this->leafs.size() > 0) {

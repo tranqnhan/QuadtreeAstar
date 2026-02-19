@@ -102,10 +102,10 @@ private:
 
     std::vector<std::vector<int>> graph;
         
-    void SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid);
-    void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid);
+    void SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid, int maxLevel);
+    void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel);
     
-    void BuildRegion(const GridEnvironment& grid);
+    void BuildRegion(const GridEnvironment& grid, int maxLevel);
     void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
     void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
 
