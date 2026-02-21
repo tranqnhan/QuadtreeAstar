@@ -79,7 +79,7 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 
 void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel) {
     const uint64_t mask = 0xFFFFFFFFFFFFFFE;
-    int shift = __builtin_ctz(fromIndex) & mask;
+    int shift = __builtin_ctz(fromIndex) & mask; 
     uint64_t tempIndex = fromIndex >> shift;
 
     uint64_t code; 
@@ -88,18 +88,20 @@ void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, boo
 
         int k = 0b11 & tempIndex;
 
+        const int level = this->resolution - (shift >> 1);
+
         while (k > 0 && k < 4) {
             code = (tempIndex++) << shift;
             
             if (code >= upperBound) return;
+    
+            // TODO: possible optimization by checking the shift    
             
-            const int level = this->resolution - (shift >> 1);
-
             if (level <= maxLevel) {
                 this->leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(code, level, oldValid);
             }
-
+        
             k++;
         }
 
@@ -131,6 +133,7 @@ void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, boo
 
             const int level = this->resolution - (shift >> 1);
 
+            // TODO: possible optimization by checking the shift
             if (level <= maxLevel) {
                 this->leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(code, level, oldValid);
