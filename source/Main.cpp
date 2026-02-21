@@ -6,7 +6,7 @@
 #include "Program.hpp"
 #include "Drawpad.hpp"
 #include "Quadtree.hpp"
-#include "QuadtreeRenderer.hpp"
+#include "DebugRenderer.hpp"
 #include "ImageGridEnvironment.hpp"
 
 
@@ -17,7 +17,7 @@ int maxLevel;
 
 Drawpad drawpad;
 Quadtree quadtree;
-QuadtreeRenderer quadtreeRenderer;
+DebugRenderer debugRenderer;
 ImageGridEnvironment grid;
 
 
@@ -31,7 +31,7 @@ void Init() {
     
 
     quadtree.Init(WINDOW_W);
-    quadtreeRenderer.Init();
+    debugRenderer.Init();
     drawpad.Init();
     grid.Init(drawpad.GetPixels(), WINDOW_H, WINDOW_H);
 
@@ -81,7 +81,7 @@ void Input() {
 void Update(float deltaTime) {
     if (quadtreeBuild) {
         quadtree.Build(grid, maxLevel);
-        quadtreeRenderer.UpdateQuadtreeLeafs(quadtree);
+        debugRenderer.UpdateQuadtreeLeafs(quadtree);
     }
     
     drawpad.Update();
@@ -97,7 +97,7 @@ void Render() {
     drawpad.Render();
 
     if (quadtreeRender) {
-        quadtreeRenderer.DrawQuadtreeLeafs();
+        debugRenderer.DrawQuadtreeLeafs();
     }
     
     DrawText(("Max Level: " + std::to_string(maxLevel)).c_str(), 0, 0, 24, DARKBLUE);

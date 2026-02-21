@@ -4,15 +4,15 @@
 
 #include "Program.hpp"
 #include "Quadtree.hpp"
-#include "QuadtreeRenderer.hpp"
+#include "DebugRenderer.hpp"
 
 
-void QuadtreeRenderer::Init() {
+void DebugRenderer::Init() {
     quadtreeLeafsTexture = LoadRenderTexture(WINDOW_W, WINDOW_H);
 }
 
 
-void QuadtreeRenderer::DrawQuadrant(const Quadrant& quad, int resolution) {
+void DebugRenderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     const int length = 1 << (resolution - quad.GetLevel());
     const int x = quad.GetX(); //(512 - quad.GetX()) - length;
     const int y = quad.GetY(); //(512 - quad.GetY()) - length;
@@ -35,7 +35,7 @@ void QuadtreeRenderer::DrawQuadrant(const Quadrant& quad, int resolution) {
 }
 
 
-void QuadtreeRenderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
+void DebugRenderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
     // Renderer::quadtreeImage = GenImageColor(WINDOW_W, WINDOW_H, WHITE);
 
     BeginTextureMode(quadtreeLeafsTexture);
@@ -69,7 +69,7 @@ void QuadtreeRenderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
 }
 
 
-void QuadtreeRenderer::DrawQuadtreeLeafs() {
+void DebugRenderer::DrawQuadtreeLeafs() {
     DrawTextureRec(
     quadtreeLeafsTexture.texture, 
     (Rectangle) {
@@ -81,6 +81,6 @@ void QuadtreeRenderer::DrawQuadtreeLeafs() {
 }
 
 
-QuadtreeRenderer::~QuadtreeRenderer() {
+DebugRenderer::~DebugRenderer() {
     UnloadRenderTexture(quadtreeLeafsTexture);
 }

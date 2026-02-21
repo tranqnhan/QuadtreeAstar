@@ -34,8 +34,9 @@ target_compile_options(QuadtreeAstar PRIVATE -O2)
 
 target_sources(QuadtreeAstar PRIVATE
     source/BinaryMath.cpp
+    source/DebugRenderer.cpp
+    source/algorithm/astar.cpp
     source/algorithm/quadtree/Quadtree.cpp
-    source/algorithm/quadtree/QuadtreeRenderer.cpp
     source/grid/ImageGridEnvironment.cpp
     source/drawpad/Drawpad.cpp
     source/Main.cpp

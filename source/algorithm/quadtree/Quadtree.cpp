@@ -1,6 +1,5 @@
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 
 #include <queue>
 #include <vector>
@@ -77,7 +76,13 @@ int Quadtree::GetChildLevelDiff(const QuadrantIdentifier& parent, int d) const {
 }
 
 
-void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel) {
+void Quadtree::SubdivideRegionSmall(
+    uint64_t fromIndex, 
+    uint64_t upperBound, 
+    bool oldValid, 
+    int maxLevel,
+    ankerl::unordered_dense::map<uint64_t, int> &leafIndex
+) {
     const uint64_t mask = 0xFFFFFFFFFFFFFFE;
     int shift = __builtin_ctz(fromIndex) & mask; 
     uint64_t tempIndex = fromIndex >> shift;
@@ -98,7 +103,7 @@ void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, boo
             // TODO: possible optimization by checking the shift    
             
             if (level <= maxLevel) {
-                this->leafIndex.emplace(code, this->leafs.size());
+                leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(code, level, oldValid);
             }
         
@@ -111,7 +116,13 @@ void Quadtree::SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, boo
 }
 
 
-void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid, int maxLevel) {
+void Quadtree::SubdivideRegionLarge(
+    uint64_t fromIndex, 
+    const uint64_t lowerBound, 
+    bool oldValid, 
+    int maxLevel,
+    ankerl::unordered_dense::map<uint64_t, int> &leafIndex
+) {
     const uint64_t mask = 0xFFFFFFFFFFFFFFE;
     int shift = __builtin_ctz(fromIndex) & mask;
     uint64_t tempIndex = fromIndex >> shift;
@@ -122,20 +133,21 @@ void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, boo
 
         int k = 0b11 & tempIndex;
 
+        const int level = this->resolution - (shift >> 1);
+            
         while (k > 0) {
             code = (--tempIndex) << shift;
             
             if (code < lowerBound) {
                 code = (++tempIndex) << shift;
-                this->SubdivideRegionSmall(lowerBound, code, oldValid, maxLevel);
+                this->SubdivideRegionSmall(lowerBound, code, oldValid, maxLevel, leafIndex);
                 return;
             }
 
-            const int level = this->resolution - (shift >> 1);
 
             // TODO: possible optimization by checking the shift
             if (level <= maxLevel) {
-                this->leafIndex.emplace(code, this->leafs.size());
+                leafIndex.emplace(code, this->leafs.size());
                 this->leafs.emplace_back(code, level, oldValid);
             }
 
@@ -151,7 +163,11 @@ void Quadtree::SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, boo
 }
 
 
-void Quadtree::BuildRegion(const GridEnvironment& grid, int maxLevel) {
+void Quadtree::BuildRegion(
+    const GridEnvironment& grid, 
+    int maxLevel,
+    ankerl::unordered_dense::map<uint64_t, int> &leafIndex
+) {
      uint64_t x, y;
     
      bool oldValid = grid.IsValid(0);
@@ -165,13 +181,13 @@ void Quadtree::BuildRegion(const GridEnvironment& grid, int maxLevel) {
 
         if (newValid == oldValid) continue;
 
-        this->SubdivideRegionLarge(newIndex, oldIndex, oldValid, maxLevel);
+        this->SubdivideRegionLarge(newIndex, oldIndex, oldValid, maxLevel, leafIndex);
 
         oldIndex = newIndex;
         oldValid = newValid;
     }
 
-    this->SubdivideRegionSmall(oldIndex, size, oldValid, maxLevel);
+    this->SubdivideRegionSmall(oldIndex, size, oldValid, maxLevel, leafIndex);
 }
 
 
@@ -182,7 +198,11 @@ void Quadtree::BuildRegion(const GridEnvironment& grid, int maxLevel) {
  * by Kunio Aizawa and Shojiro Tanaka 
  */
 
-void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel) {
+void Quadtree::BuildLevelDifferences(
+    ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, 
+    int maxLevel,
+    const ankerl::unordered_dense::map<uint64_t, int> &leafIndex
+) {
 
     // Adjacent level differences
     std::queue<uint64_t> codes;
@@ -201,9 +221,9 @@ void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, Quad
         const QuadrantIdentifier parentQuadrant = mapIdentifiers.find(parentLocationCode)->second;
         
         uint64_t leafLocationCode = parentLocationCode;// << (2 * (this->resolution - parentQuadrant.level));
-        auto leafLevelIterator = this->leafIndex.find(leafLocationCode);
+        auto leafLevelIterator = leafIndex.find(leafLocationCode);
 
-        if (leafLevelIterator != this->leafIndex.end() 
+        if (leafLevelIterator != leafIndex.end() 
             && this->leafs[leafLevelIterator->second].GetLevel() == parentQuadrant.level) continue;
             
         if (parentQuadrant.level + 1 > maxLevel) continue;
@@ -238,9 +258,13 @@ void Quadtree::BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, Quad
     } 
 }
 
-void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel) {
+void Quadtree::BuildGraph(
+    const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, 
+    int maxLevel, 
+    const ankerl::unordered_dense::map<uint64_t, int> &leafIndex) 
+{
   // Build graphs
-    this->graph.resize(this->leafs.size());
+    this->quadtreeGraph.resize(this->leafs.size());
 
     for (int i = 0; i < this->leafs.size(); ++i) {
         if (!this->leafs[i].IsValid()) continue;
@@ -260,51 +284,44 @@ void Quadtree::BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantI
             if (levelDiffs == 0) {
                 uint64_t adjacentCode = this->GetAdjacentQuadrant(code, k, 2 * (this->resolution - level));
                 
-                auto adjacentIterator = this->leafIndex.find(adjacentCode);
-                if (adjacentIterator == this->leafIndex.end()) continue;
+                auto adjacentIterator = leafIndex.find(adjacentCode);
+                if (adjacentIterator == leafIndex.end()) continue;
 
                 int adjacentIndex = adjacentIterator->second;
                 
                 if (!this->leafs[adjacentIndex].IsValid() || this->leafs[adjacentIndex].GetLevel() > maxLevel) continue;
 
-                this->graph[i].push_back(adjacentIndex);
+                this->quadtreeGraph[i].push_back(adjacentIndex);
             } else {
                 const int shift = 2 * (this->resolution - level - levelDiffs);
                 uint64_t adjacentCode = this->GetAdjacentQuadrant((code >> shift) << shift, k, shift);
                 
-                auto adjacentIterator = this->leafIndex.find(adjacentCode);
-                if (adjacentIterator == this->leafIndex.end()) continue;
+                auto adjacentIterator = leafIndex.find(adjacentCode);
+                if (adjacentIterator == leafIndex.end()) continue;
                 
                 int adjacentIndex = adjacentIterator->second;
 
                 if (!this->leafs[adjacentIndex].IsValid()|| this->leafs[adjacentIndex].GetLevel() > maxLevel) continue;
 
-                this->graph[i].push_back(adjacentIndex);
-                this->graph[adjacentIndex].push_back(i);
+                this->quadtreeGraph[i].push_back(adjacentIndex);
+                this->quadtreeGraph[adjacentIndex].push_back(i);
             }
         }
     }
 }
 
 void Quadtree::Build(const GridEnvironment& grid, int maxLevel) {
-    this->graph.clear();
+    this->quadtreeGraph.clear();
     this->leafs.clear();
-    this->leafIndex.clear();
 
-    // ---------- //
-    this->BuildRegion(grid, maxLevel);
-    // ---------- //
+    ankerl::unordered_dense::map<uint64_t, int> leafIndex;
+    this->BuildRegion(grid, maxLevel, leafIndex);
 
     if (this->leafs.size() > 0) {
-        // ---------- //
         ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> mapIdentifiers;
-        this->BuildLevelDifferences(mapIdentifiers, maxLevel);
-        // ---------- //
 
-        // ---------- //
-        this->BuildGraph(mapIdentifiers, maxLevel);
-        // ---------- //
+        this->BuildLevelDifferences(mapIdentifiers, maxLevel, leafIndex);
+        this->BuildGraph(mapIdentifiers, maxLevel, leafIndex);
     }
 
-    //std::printf("num leafs %li\n", this->leafs.size());
 }

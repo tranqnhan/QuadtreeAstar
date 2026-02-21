@@ -4,14 +4,14 @@
 
 #include "Quadtree.hpp"
 
-class QuadtreeRenderer {
+class DebugRenderer {
 public:
     void Init();
     void DrawQuadrant(const Quadrant& quad, int resolution);
     void UpdateQuadtreeLeafs(const Quadtree& quadtree);
     void DrawQuadtreeLeafs();
 
-    ~QuadtreeRenderer();
+    ~DebugRenderer();
 
 private:
     RenderTexture quadtreeLeafsTexture;
