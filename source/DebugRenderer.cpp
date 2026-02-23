@@ -11,6 +11,8 @@
 
 void DebugRenderer::Init() {
     debugTexture = LoadRenderTexture(WINDOW_W, WINDOW_H);
+    debugRegionTexture = LoadRenderTexture(WINDOW_W, WINDOW_H);
+
 }
 
 
@@ -43,6 +45,7 @@ void DebugRenderer::Update(const Quadtree& quadtree, const AstarGraph& astarGrap
     this->UpdateQuadtree(quadtree);
     this->UpdateAstarGraph(astarGraph);
 
+
     EndTextureMode();
 }
 
@@ -59,6 +62,7 @@ void DebugRenderer::UpdateQuadtree(const Quadtree& quadtree) {
     //UpdateTexture(Renderer::quadtreeLeafsTexture.texture, Renderer::quadtreeImage.data); // Initial upload
 
 }
+
 
 void DebugRenderer::UpdateAstarGraph(const AstarGraph& astarGraph) {
     const std::vector<AstarNode>& nodes = astarGraph.GetNodes();
@@ -80,7 +84,38 @@ void DebugRenderer::UpdateAstarGraph(const AstarGraph& astarGraph) {
 }
 
 
+void DebugRenderer::UpdateRegionSelect(const Quadtree& quadtree, int regionSelect) {
+
+    BeginTextureMode(debugRegionTexture);
+    ClearBackground(BLANK);
+
+
+    if (regionSelect >= 0) {
+        const Quadrant& quad = quadtree.GetLeafs()[regionSelect];
+        const int length = 1 << (quadtree.GetResolution() - quad.GetLevel());
+        const int x = quad.GetX(); //(512 - quad.GetX()) - length;
+        const int y = quad.GetY(); //(512 - quad.GetY()) - length;
+
+        const Color color = GREEN;
+
+        DrawRectangle(x, y, length, length, color);
+    }
+
+    EndTextureMode();
+
+
+}
+
+
 void DebugRenderer::Render() {
+    DrawTextureRec(
+    debugRegionTexture.texture, 
+    (Rectangle) {
+        .x = 0,
+        .y = 0,
+        .width = WINDOW_W,
+        .height = -WINDOW_H,
+    }, (Vector2) {0, 0}, WHITE);
     DrawTextureRec(
     debugTexture.texture, 
     (Rectangle) {

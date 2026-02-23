@@ -86,6 +86,10 @@ public:
         return quadtreeGraph;
     }
 
+    // Returns the index of the quadrant
+    int QueryPoint(uint32_t x, uint32_t y) const;
+
+
 private:
 
     uint64_t tx;
@@ -97,16 +101,16 @@ private:
     int maxLevel;
 
     std::vector<Quadrant> leafs;
-   // std::vector<bool> leafValid;
 
     std::vector<std::vector<int>> quadtreeGraph;
+    ankerl::unordered_dense::map<uint64_t, int> leafIndex;
         
-    void SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid, int maxLevel, ankerl::unordered_dense::map<uint64_t, int> &leafIndex);
-    void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel, ankerl::unordered_dense::map<uint64_t, int> &leafIndex);
+    void SubdivideRegionLarge(uint64_t fromIndex, uint64_t lowerBound, bool oldValid, int maxLevel);
+    void SubdivideRegionSmall(uint64_t fromIndex, uint64_t upperBound, bool oldValid, int maxLevel);
     
-    void BuildRegion(const GridEnvironment& grid, int maxLevel, ankerl::unordered_dense::map<uint64_t, int> &leafIndex);
-    void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel, const ankerl::unordered_dense::map<uint64_t, int> &leafIndex);
-    void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel, const ankerl::unordered_dense::map<uint64_t, int> &leafIndex);
+    void BuildRegion(const GridEnvironment& grid, int maxLevel);
+    void BuildLevelDifferences(ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
+    void BuildGraph(const ankerl::unordered_dense::map<uint64_t, QuadrantIdentifier> &mapIdentifiers, int maxLevel);
 
     uint64_t DialatedIntegerAdd(uint64_t locationCode, uint64_t direction) const;
     uint64_t GetAdjacentQuadrant(uint64_t locationCode, int direction, int shift) const; 

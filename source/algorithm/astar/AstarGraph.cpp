@@ -41,9 +41,9 @@ void AstarGraph::AddNode(int x, int y,int edgeIndex) {
 
 void AstarGraph::AddEdge(int nodeIdA, int nodeIdB) {
     if (nodeIdA >= nodes.size() && nodeIdB >= nodes.size()) {
-        std::printf("ERROR\n");
         return;
     }
+    
     AstarNode &nodeA = nodes[nodeIdA];
     AstarNode &nodeB = nodes[nodeIdB];
 
