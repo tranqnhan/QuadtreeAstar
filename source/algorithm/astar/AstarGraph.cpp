@@ -14,13 +14,8 @@ void AstarGraph::Build(const Quadtree &quadtree) {
     // Adding Nodes
     int halfLength, x, y, numEdges;
     
-    halfLength = (1 << (quadtree.GetResolution() - quadtreeLeafs[0].GetLevel())) / 2;
-    x = quadtreeLeafs[0].GetX() + halfLength; 
-    y = quadtreeLeafs[0].GetY() + halfLength; 
-    this->AddNode(x, y, 0);
-    numEdges += quadtreeGraph[0].size();
-
-    for (int i = 1; i < quadtreeGraph.size(); ++i) {
+    numEdges = 0;
+    for (int i = 0; i < quadtreeGraph.size(); ++i) {
         halfLength = (1 << (quadtree.GetResolution() - quadtreeLeafs[i].GetLevel())) / 2;
         x = quadtreeLeafs[i].GetX() + halfLength; 
         y = quadtreeLeafs[i].GetY() + halfLength;
