@@ -8,6 +8,7 @@
 #include "Quadtree.hpp"
 #include "DebugRenderer.hpp"
 #include "ImageGridEnvironment.hpp"
+#include "AstarGraph.hpp"
 
 
 bool isGameEnd;
@@ -17,6 +18,7 @@ int maxLevel;
 
 Drawpad drawpad;
 Quadtree quadtree;
+AstarGraph astarGraph;
 DebugRenderer debugRenderer;
 ImageGridEnvironment grid;
 
@@ -81,7 +83,8 @@ void Input() {
 void Update(float deltaTime) {
     if (quadtreeBuild) {
         quadtree.Build(grid, maxLevel);
-        debugRenderer.UpdateQuadtreeLeafs(quadtree);
+        astarGraph.Build(quadtree);
+        debugRenderer.Update(quadtree, astarGraph);
     }
     
     drawpad.Update();
@@ -97,7 +100,7 @@ void Render() {
     drawpad.Render();
 
     if (quadtreeRender) {
-        debugRenderer.DrawQuadtreeLeafs();
+        debugRenderer.Render();
     }
     
     DrawText(("Max Level: " + std::to_string(maxLevel)).c_str(), 0, 0, 24, DARKBLUE);

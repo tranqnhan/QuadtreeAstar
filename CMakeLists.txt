@@ -30,12 +30,12 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 target_link_libraries(QuadtreeAstar raylib)
-target_compile_options(QuadtreeAstar PRIVATE -O2)
+target_compile_options(QuadtreeAstar PRIVATE -O3)
 
 target_sources(QuadtreeAstar PRIVATE
     source/BinaryMath.cpp
     source/DebugRenderer.cpp
-    source/algorithm/astar.cpp
+    source/algorithm/astar/AstarGraph.cpp
     source/algorithm/quadtree/Quadtree.cpp
     source/grid/ImageGridEnvironment.cpp
     source/drawpad/Drawpad.cpp

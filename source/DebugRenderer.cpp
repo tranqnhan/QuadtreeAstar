@@ -1,14 +1,16 @@
+#include <cstdio>
 #include <vector>
 
 #include <raylib.h>
 
+#include "AstarGraph.hpp"
 #include "Program.hpp"
 #include "Quadtree.hpp"
 #include "DebugRenderer.hpp"
 
 
 void DebugRenderer::Init() {
-    quadtreeLeafsTexture = LoadRenderTexture(WINDOW_W, WINDOW_H);
+    debugTexture = LoadRenderTexture(WINDOW_W, WINDOW_H);
 }
 
 
@@ -34,44 +36,53 @@ void DebugRenderer::DrawQuadrant(const Quadrant& quad, int resolution) {
     // DrawText(codeText.c_str(), x, y, 12, BLUE);
 }
 
-
-void DebugRenderer::UpdateQuadtreeLeafs(const Quadtree& quadtree) {
-    // Renderer::quadtreeImage = GenImageColor(WINDOW_W, WINDOW_H, WHITE);
-
-    BeginTextureMode(quadtreeLeafsTexture);
+void DebugRenderer::Update(const Quadtree& quadtree, const AstarGraph& astarGraph) {
+    BeginTextureMode(debugTexture);
     ClearBackground(BLANK);
 
-    const std::vector<Quadrant>& leafs = quadtree.GetLeafs();
-    const std::vector<std::vector<int>>& graph = quadtree.GetGraph();
-
-    if (quadtree.GetGraph().size() > 0) {
-        for (int i = 0 ; i < leafs.size(); ++i) {
-            
-            DrawQuadrant(leafs[i], quadtree.GetResolution());
-            
-            const int length1 = 1 << (quadtree.GetResolution() - leafs[i].GetLevel());
-            const int x1 = leafs[i].GetX() + (length1 / 2); 
-            const int y1 = leafs[i].GetY() + (length1 / 2); 
-        
-            for (int k = 0; k < graph[i].size(); ++k) {
-                const int adjIndex = graph[i][k];
-                const int length2 = 1 << (quadtree.GetResolution() - leafs[adjIndex].GetLevel());
-                const int x2 = leafs[adjIndex].GetX() + length2 / 2;
-                const int y2 = leafs[adjIndex].GetY() + length2 / 2;
-                DrawLine(x1, y1, x2, y2, BLUE);
-            } 
-        }
-    }
-
-    //UpdateTexture(Renderer::quadtreeLeafsTexture.texture, Renderer::quadtreeImage.data); // Initial upload
+    this->UpdateQuadtree(quadtree);
+    this->UpdateAstarGraph(astarGraph);
 
     EndTextureMode();
 }
 
+void DebugRenderer::UpdateQuadtree(const Quadtree& quadtree) {
+    // Renderer::quadtreeImage = GenImageColor(WINDOW_W, WINDOW_H, WHITE);
 
-void DebugRenderer::DrawQuadtreeLeafs() {
+    const std::vector<Quadrant>& leafs = quadtree.GetLeafs();
+    const std::vector<std::vector<int>>& graph = quadtree.GetGraph();
+
+    for (int i = 0 ; i < leafs.size(); ++i) {
+        DrawQuadrant(leafs[i], quadtree.GetResolution());
+    }
+
+    //UpdateTexture(Renderer::quadtreeLeafsTexture.texture, Renderer::quadtreeImage.data); // Initial upload
+
+}
+
+void DebugRenderer::UpdateAstarGraph(const AstarGraph& astarGraph) {
+    const std::vector<AstarNode>& nodes = astarGraph.GetNodes();
+    const std::vector<AstarEdge>& edges = astarGraph.GetEdges();
+    
+    for (int i = 0; i < nodes.size(); ++i) {
+        for (int j = nodes[i].GetEdgeIndex(); j < nodes[i].GetEdgeIndex() + nodes[i].GetNumEdges(); j++) {
+            const int startPosX = nodes[i].GetX();
+            const int startPosY = nodes[i].GetY();
+            const int endPosX = nodes[edges[j].GetNodeIdB()].GetX();
+            const int endPosY = nodes[edges[j].GetNodeIdB()].GetY();
+        
+            DrawLine(startPosX, startPosY, endPosX, endPosY, BLUE);
+        }
+        //std::printf("index %i\n", nodes[i].GetEdgeIndex());
+        //std::fflush(stdout);
+    }
+
+}
+
+
+void DebugRenderer::Render() {
     DrawTextureRec(
-    quadtreeLeafsTexture.texture, 
+    debugTexture.texture, 
     (Rectangle) {
         .x = 0,
         .y = 0,
@@ -82,5 +93,5 @@ void DebugRenderer::DrawQuadtreeLeafs() {
 
 
 DebugRenderer::~DebugRenderer() {
-    UnloadRenderTexture(quadtreeLeafsTexture);
+    UnloadRenderTexture(debugTexture);
 }

@@ -41,6 +41,8 @@ private:
 
 class AstarEdge {
 public:
+    AstarEdge() {};
+    
     AstarEdge(int nodeIdB, float dist) 
     : nodeIdB(nodeIdB), dist(dist) {}
 
@@ -61,7 +63,7 @@ private:
 class AstarGraph {
 public:
 
-    AstarGraph(const Quadtree &quadtree);
+    void Build(const Quadtree &quadtree);
 
     const std::vector<AstarNode>& GetNodes() const {
         return nodes;

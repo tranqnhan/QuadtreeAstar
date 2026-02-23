@@ -4,7 +4,10 @@
 #include "Quadtree.hpp"
 
 
-AstarGraph::AstarGraph(const Quadtree &quadtree) {
+void AstarGraph::Build(const Quadtree &quadtree) {
+    nodes.clear();
+    edges.clear();
+    
     const std::vector<std::vector<int>> &quadtreeGraph = quadtree.GetGraph();
     const std::vector<Quadrant> &quadtreeLeafs = quadtree.GetLeafs();
 
@@ -21,7 +24,7 @@ AstarGraph::AstarGraph(const Quadtree &quadtree) {
         halfLength = (1 << (quadtree.GetResolution() - quadtreeLeafs[i].GetLevel())) / 2;
         x = quadtreeLeafs[i].GetX() + halfLength; 
         y = quadtreeLeafs[i].GetY() + halfLength;
-        this->AddNode(x, y, quadtreeGraph[i - 1].size());
+        this->AddNode(x, y, numEdges);
         numEdges += quadtreeGraph[i].size();
     }
 
@@ -30,11 +33,9 @@ AstarGraph::AstarGraph(const Quadtree &quadtree) {
 
     for (int i = 0; i < quadtreeGraph.size(); ++i) {
         for (int j = 0; j < quadtreeGraph[i].size(); ++j) {
-            this->AddEdge(i, quadtreeGraph[j][i]);
+            this->AddEdge(i, quadtreeGraph[i][j]);
         }
     }
-
-    
 }
 
 
@@ -44,8 +45,10 @@ void AstarGraph::AddNode(int x, int y,int edgeIndex) {
 
 
 void AstarGraph::AddEdge(int nodeIdA, int nodeIdB) {
-    if (nodeIdA >= nodes.size() && nodeIdB >= nodes.size()) return;
-
+    if (nodeIdA >= nodes.size() && nodeIdB >= nodes.size()) {
+        std::printf("ERROR\n");
+        return;
+    }
     AstarNode &nodeA = nodes[nodeIdA];
     AstarNode &nodeB = nodes[nodeIdB];
 
