@@ -4,6 +4,9 @@
 
 class AstarSearch {
 public:
-  //  std::vector<int> GetPath(int fromX, int fromY, )
+    std::vector<int> GetPath(
+      const Quadtree& quadtree, const AstarGraph& graph,
+      int fromX, int fromY, int toX, int toY);
+
 
 };

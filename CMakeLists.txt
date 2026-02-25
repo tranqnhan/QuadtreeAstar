@@ -36,6 +36,7 @@ target_sources(QuadtreeAstar PRIVATE
     source/BinaryMath.cpp
     source/DebugRenderer.cpp
     source/algorithm/astar/AstarGraph.cpp
+    source/algorithm/astar/AstarSearch.cpp
     source/algorithm/quadtree/Quadtree.cpp
     source/grid/ImageGridEnvironment.cpp
     source/drawpad/Drawpad.cpp

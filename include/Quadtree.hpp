@@ -87,7 +87,7 @@ public:
     }
 
     // Returns the index of the quadrant
-    int QueryPoint(uint32_t x, uint32_t y) const;
+    int QueryValidRegion(uint32_t x, uint32_t y) const;
 
 
 private:

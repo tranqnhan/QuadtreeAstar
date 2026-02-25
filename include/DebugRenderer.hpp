@@ -10,14 +10,14 @@ public:
     void Init();
     
     void Update(const Quadtree& quadtree, const AstarGraph& astarGraph);
-    void UpdateRegionSelect(const Quadtree& quadtree, int regionSelect);
+    void UpdatePath(const std::vector<int>& path);
     void Render();
 
     ~DebugRenderer();
 
 private:
     RenderTexture debugTexture;
-    RenderTexture debugRegionTexture;
+    RenderTexture debugPathTexture;
     
     void DrawQuadrant(const Quadrant& quad, int resolution);
     void UpdateQuadtree(const Quadtree& quadtree);

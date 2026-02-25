@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdint>
 
+#include <cstdio>
 #include <queue>
 #include <vector>
 
@@ -87,7 +88,8 @@ void Quadtree::SubdivideRegionSmall(
     uint64_t tempIndex = fromIndex >> shift;
 
     uint64_t code; 
-    
+
+        
     while (tempIndex != 0) {
 
         int k = 0b11 & tempIndex;
@@ -96,7 +98,7 @@ void Quadtree::SubdivideRegionSmall(
 
         while (k > 0 && k < 4) {
             code = (tempIndex++) << shift;
-            
+                        
             if (code >= upperBound) return;
     
             // TODO: possible optimization by checking the shift    
@@ -112,6 +114,7 @@ void Quadtree::SubdivideRegionSmall(
         tempIndex >>= 2;
         shift += 2;
     }
+
 }
 
 
@@ -165,16 +168,18 @@ void Quadtree::BuildRegion(
     const GridEnvironment& grid, 
     int maxLevel
 ) {
-     uint64_t x, y;
+    uint64_t x, y;
     
-     bool oldValid = grid.IsValid(0);
-     uint64_t oldIndex = 0;
+    bool oldValid = grid.IsValid(0);
+    uint64_t oldIndex = 0;
 
     const uint64_t size = grid.GetWidth() * grid.GetHeight();
 
+    bool newValid;
+
     for (uint64_t newIndex = 1; newIndex < size; ++newIndex) {
         BinaryMath::Deinterleave(newIndex, x, y);
-        bool newValid = grid.IsValid(y * grid.GetWidth() + x);
+        newValid = grid.IsValid(y * grid.GetWidth() + x);
 
         if (newValid == oldValid) continue;
 
@@ -185,6 +190,11 @@ void Quadtree::BuildRegion(
     }
 
     this->SubdivideRegionSmall(oldIndex, size, oldValid, maxLevel);
+
+    if (this->leafs.size() == 0) {
+        leafIndex.emplace(0, this->leafs.size());
+        this->leafs.emplace_back(0, 0, oldValid);
+    }
 }
 
 
@@ -321,31 +331,40 @@ void Quadtree::Build(const GridEnvironment& grid, int maxLevel) {
 
 }
 
-int Quadtree::QueryPoint(uint32_t x, uint32_t y) const {
+int Quadtree::QueryValidRegion(uint32_t x, uint32_t y) const {
     int result = -1;
 
     uint64_t z = BinaryMath::Interleave(x, y);
     uint64_t mask = 0b11;
 
-    for (int i = 0; i < this->resolution; ++i) {
+    for (int i = 0; i <= this->resolution; ++i) {
+
+        printf("z %lb\n", z);
         const auto iterator = leafIndex.find(z);
         if (iterator != leafIndex.end()) {
+
             const int index = iterator->second;
             const int level = this->leafs[index].GetLevel();
             const int length = (1 << (resolution - level));
             const int leafX = this->leafs[index].GetX();
             const int leafY = this->leafs[index].GetY();
+            const bool isValid = this->leafs[index].IsValid();
 
-            if ((x > leafX) && (y > leafY) && (x < leafX + length) && (y < leafY + length)) {
+            printf("isvalid %i x %i y %i\n", isValid, x, y);
+            fflush(stdout);
+            if (isValid && (x > leafX) && (y > leafY) && (x < leafX + length) && (y < leafY + length)) {
                 result = iterator->second;
             }
 
             break;
         }
         z = z & (~mask);
+
         mask <<= 2;
     }
 
 
+    printf("-------\n");
+    fflush(stdout);
     return result;
 }

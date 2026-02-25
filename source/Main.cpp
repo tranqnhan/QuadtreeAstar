@@ -10,18 +10,23 @@
 #include "DebugRenderer.hpp"
 #include "ImageGridEnvironment.hpp"
 #include "AstarGraph.hpp"
+#include "AstarSearch.hpp"
 
 
 bool isGameEnd;
 bool quadtreeBuild;
 bool quadtreeRender;
 int maxLevel;
-int regionSelect;
-bool regionRender;
+
+int fromPosX, fromPosY;
+int toPosX, toPosY;
+
+bool pathRender;
 
 Drawpad drawpad;
 Quadtree quadtree;
 AstarGraph astarGraph;
+AstarSearch astarSearch;
 DebugRenderer debugRenderer;
 ImageGridEnvironment grid;
 
@@ -41,12 +46,16 @@ void Init() {
     grid.Init(drawpad.GetPixels(), WINDOW_H, WINDOW_H);
 
     isGameEnd = false;
-    quadtreeBuild = false;
-    quadtreeRender = false;
+    quadtreeBuild = true;
+    quadtreeRender = true;
     
     maxLevel = std::log2(WINDOW_W);
-    regionSelect = -1;
-    regionRender = false;
+    
+    fromPosX = 0;
+    fromPosY = 0;
+
+    toPosX = 0;
+    toPosY = 0;
 }
 
 
@@ -61,8 +70,6 @@ void Input() {
 
     if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
         quadtreeBuild = true;
-    } else {
-        quadtreeBuild = false;
     }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -70,32 +77,34 @@ void Input() {
     }
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        pathRender = true;
         quadtreeRender = true;
-        regionSelect = -1;
-        regionRender = true;
     }
 
     if (IsKeyPressed(KEY_Z)) {
         maxLevel = maxLevel - 1 > 0 ? maxLevel - 1 : maxLevel;
         quadtreeBuild = true;
-        regionSelect = -1;
-        regionRender = true;
+        pathRender = true;
     }    
 
     if (IsKeyPressed(KEY_X)) {
         maxLevel = maxLevel + 1 > std::log2(WINDOW_W) ? std::log2(WINDOW_W) : maxLevel + 1;
         quadtreeBuild = true;
-        regionSelect = -1;
-        regionRender = true;
+        pathRender = true;
     }    
     
     if (IsKeyPressed(KEY_Q)) {
         Vector2 mousePosition = GetMousePosition();
-        uint32_t x = mousePosition.x;
-        uint32_t y = mousePosition.y;
+        fromPosX = mousePosition.x;
+        fromPosY = mousePosition.y;
+        pathRender = true;
+    }
 
-        regionSelect = quadtree.QueryPoint(x, y);
-        regionRender = true;
+    if (IsKeyPressed(KEY_W)) {
+        Vector2 mousePosition = GetMousePosition();
+        toPosX = mousePosition.x;
+        toPosY = mousePosition.y;
+        pathRender = true;
     }
 
     drawpad.Input();
@@ -107,11 +116,13 @@ void Update(float deltaTime) {
         quadtree.Build(grid, maxLevel);
         astarGraph.Build(quadtree);
         debugRenderer.Update(quadtree, astarGraph);
+        quadtreeBuild = false;
     }
 
-    if (regionRender) {
-        debugRenderer.UpdateRegionSelect(quadtree, regionSelect);
-        regionRender = false;
+    if (pathRender) {
+        const std::vector<int>& path = astarSearch.GetPath(quadtree, astarGraph, fromPosX, fromPosY, toPosX, toPosY);
+        debugRenderer.UpdatePath(path);
+        pathRender = false;
     }
     
     drawpad.Update();
