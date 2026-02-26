@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include <limits>
 
 #include "ankerl/unordered_dense.h"
 
@@ -38,7 +39,7 @@ std::vector<int> AstarSearch::GetPath(const Quadtree& quadtree, const AstarGraph
 
     std::vector<int> parent(nodes.size(), -1);
 
-    std::vector<float> gScores(nodes.size(), MAXFLOAT);
+    std::vector<float> gScores(nodes.size(), std::numeric_limits<float>::max());
 
     Heap<float> openSet = Heap<float>(
         [](const float& a, const float& b) -> bool {
@@ -53,7 +54,6 @@ std::vector<int> AstarSearch::GetPath(const Quadtree& quadtree, const AstarGraph
     gScores[fromRegionIndex] = 0;
 
     bool isPathFound = false;
-
 
     while(openSet.GetSize() > 0) {
 
