@@ -8,4 +8,4 @@ Web: https://tranqnhan.github.io/QuadtreeAstar/
 ### Current Implementation Progress
 - :white_check_mark: Build Quadtree
 - :white_check_mark: Build Graph
-- :x: A* pathfinding
+- :white_check_mark: A* pathfinding
