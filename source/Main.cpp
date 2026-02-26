@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cstdint>
 #include <string>
 #define RAYLIB_IMPLEMENTATION
 #include <raylib.h>
@@ -11,15 +10,13 @@
 #include "ImageGridEnvironment.hpp"
 #include "AstarGraph.hpp"
 #include "AstarSearch.hpp"
+#include "Endpoint.hpp"
 
 
 bool isGameEnd;
 bool quadtreeBuild;
 bool quadtreeRender;
 int maxLevel;
-
-int fromPosX, fromPosY;
-int toPosX, toPosY;
 
 bool pathRender;
 
@@ -29,6 +26,9 @@ AstarGraph astarGraph;
 AstarSearch astarSearch;
 DebugRenderer debugRenderer;
 ImageGridEnvironment grid;
+
+Endpoint start(0, 0, GREEN);
+Endpoint end(0, 0, RED);
 
 
 // Main loop initialization
@@ -50,19 +50,11 @@ void Init() {
     quadtreeRender = true;
     
     maxLevel = std::log2(WINDOW_W);
-    
-    fromPosX = 0;
-    fromPosY = 0;
-
-    toPosX = 0;
-    toPosY = 0;
 }
 
 
 // Main loop input
 void Input() {
-    
-    
     if (IsKeyPressed(KEY_SPACE)) {
         isGameEnd = true;
         return;
@@ -95,15 +87,13 @@ void Input() {
     
     if (IsKeyPressed(KEY_Q)) {
         Vector2 mousePosition = GetMousePosition();
-        fromPosX = mousePosition.x;
-        fromPosY = mousePosition.y;
+        start.SetPosition(mousePosition.x, mousePosition.y);
         pathRender = true;
     }
 
     if (IsKeyPressed(KEY_W)) {
         Vector2 mousePosition = GetMousePosition();
-        toPosX = mousePosition.x;
-        toPosY = mousePosition.y;
+        end.SetPosition(mousePosition.x, mousePosition.y);
         pathRender = true;
     }
 
@@ -120,13 +110,15 @@ void Update(float deltaTime) {
     }
 
     if (pathRender) {
-        const std::vector<int>& path = astarSearch.GetPath(quadtree, astarGraph, fromPosX, fromPosY, toPosX, toPosY);
+        const std::vector<int>& path = astarSearch.GetPath(quadtree, astarGraph, start.GetX(), start.GetY(), end.GetX(), end.GetY());
         debugRenderer.UpdatePath(path);
         pathRender = false;
     }
     
     drawpad.Update();
 
+    start.Update(deltaTime);
+    end.Update(deltaTime);
 }
 
 
@@ -141,6 +133,9 @@ void Render() {
         debugRenderer.Render();
     }
     
+    start.Render();
+    end.Render();
+
     DrawText(("Max Level: " + std::to_string(maxLevel)).c_str(), 0, 0, 24, DARKBLUE);
 
     EndDrawing();

@@ -39,6 +39,7 @@ target_sources(QuadtreeAstar PRIVATE
     source/algorithm/astar/AstarSearch.cpp
     source/algorithm/quadtree/Quadtree.cpp
     source/grid/ImageGridEnvironment.cpp
+    source/drawpad/Endpoint.cpp
     source/drawpad/Drawpad.cpp
     source/Main.cpp
 )
