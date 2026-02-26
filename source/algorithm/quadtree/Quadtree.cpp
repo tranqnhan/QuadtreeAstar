@@ -13,9 +13,7 @@
 #include "GridEnvironment.hpp"
 
 
-Quadtree::Quadtree() {
-
-}
+Quadtree::Quadtree() {}
 
 void Quadtree::Init(int size) {
     this->resolution = (int)std::log2(size);
@@ -339,7 +337,6 @@ int Quadtree::QueryValidRegion(uint32_t x, uint32_t y) const {
 
     for (int i = 0; i <= this->resolution; ++i) {
 
-        printf("z %lb\n", z);
         const auto iterator = leafIndex.find(z);
         if (iterator != leafIndex.end()) {
 
@@ -350,8 +347,6 @@ int Quadtree::QueryValidRegion(uint32_t x, uint32_t y) const {
             const int leafY = this->leafs[index].GetY();
             const bool isValid = this->leafs[index].IsValid();
 
-            printf("isvalid %i x %i y %i\n", isValid, x, y);
-            fflush(stdout);
             if (isValid && (x > leafX) && (y > leafY) && (x < leafX + length) && (y < leafY + length)) {
                 result = iterator->second;
             }
@@ -364,7 +359,6 @@ int Quadtree::QueryValidRegion(uint32_t x, uint32_t y) const {
     }
 
 
-    printf("-------\n");
     fflush(stdout);
     return result;
 }

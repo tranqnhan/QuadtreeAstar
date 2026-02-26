@@ -1,12 +1,18 @@
-#include "AstarSearch.hpp"
-#include "AstarGraph.hpp"
-#include "Quadtree.hpp"
-#include "ankerl/unordered_dense.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 
+#include "ankerl/unordered_dense.h"
 
+#include "AstarSearch.hpp"
+#include "AstarGraph.hpp"
+#include "Quadtree.hpp"
+#include "Heap.hpp"
+
+
+
+// Returns a list of x y coords
 std::vector<int> AstarSearch::GetPath(const Quadtree& quadtree, const AstarGraph& graph, int fromX, int fromY, int toX, int toY) {
     std::vector<int> path; // xyxyxy...
 
@@ -27,48 +33,77 @@ std::vector<int> AstarSearch::GetPath(const Quadtree& quadtree, const AstarGraph
         return path;
     }
 
-    std::vector<int> openNodeIndexes;
-    ankerl::unordered_dense::set<int> closeNodeIndexes;
-
     const std::vector<AstarNode>& nodes = graph.GetNodes();
     const std::vector<AstarEdge>& edges = graph.GetEdges();
 
-    std::vector<int> prevNodeIndexes(nodes.size(), -1);
-    std::vector<float> prevNodeDists(nodes.size(), -1);
+    std::vector<int> parent(nodes.size(), -1);
 
-    openNodeIndexes.emplace_back(fromRegionIndex);
+    std::vector<float> gScores(nodes.size(), MAXFLOAT);
+
+    Heap<float> openSet = Heap<float>(
+        [](const float& a, const float& b) -> bool {
+            return a > b;
+        }
+    );
+
+    ankerl::unordered_dense::set<int> closeSet;
+
+    openSet.Push(fromRegionIndex, fromRegionIndex);
+
+    gScores[fromRegionIndex] = 0;
 
     bool isPathFound = false;
 
-    while(openNodeIndexes.size() > 0) {
-        const int currentNodeIndex = openNodeIndexes.back();
-        openNodeIndexes.pop_back();
+
+    while(openSet.GetSize() > 0) {
+
+        // Find node with smallest fScore
+        const int currentNodeIndex = openSet.TopItemID();
+
+        openSet.Pop();
 
         if (currentNodeIndex == toRegionIndex) {
             isPathFound = true;
             break;
         } 
 
-        closeNodeIndexes.emplace(currentNodeIndex);
+        closeSet.emplace(currentNodeIndex);
 
+        // Expand neighbors
         const AstarNode& currentNode = nodes[currentNodeIndex];
 
         for (int i = currentNode.GetEdgeIndex(); i < currentNode.GetEdgeIndex() + currentNode.GetNumEdges(); ++i) {
             const int nextNodeIndex = edges[i].GetNodeIdB();
             const float nextNodeDist = edges[i].GetDist();
 
-            if (closeNodeIndexes.find(nextNodeIndex) != closeNodeIndexes.end()) {
+            if (closeSet.find(nextNodeIndex) != closeSet.end()) {
                 continue;
             }
             
+            const float gScore = gScores[currentNodeIndex] + nextNodeDist;
+
+            if (gScore < gScores[nextNodeIndex]) {
+                parent[nextNodeIndex] = currentNodeIndex;
+                gScores[nextNodeIndex] = gScore;
+
+                const int nextNodeX = nodes[nextNodeIndex].GetX();
+                const int nextNodeY = nodes[nextNodeIndex].GetY();
+                const float dX = nextNodeX - toX;
+                const float dY = nextNodeY - toY;
+                const float hScore = std::sqrt(dX * dX + dY * dY);
+                
+                const float fScore = gScore + hScore;
+
+                if (openSet.Push(fScore, nextNodeIndex)) {
+                    parent[nextNodeIndex] = currentNodeIndex;
+                }
+            }
             
-            openNodeIndexes.emplace_back(nextNodeIndex);
-            prevNodeIndexes[nextNodeIndex] = currentNodeIndex;
-            prevNodeDists[nextNodeIndex] = nextNodeDist;
         }
 
     }
 
+    // Reconstruct path
     if (isPathFound) {
         path.emplace_back(toY);
         path.emplace_back(toX);
@@ -80,7 +115,7 @@ std::vector<int> AstarSearch::GetPath(const Quadtree& quadtree, const AstarGraph
             const int x = nodes[currentNodeIndex].GetX();
             path.emplace_back(y);
             path.emplace_back(x);
-            currentNodeIndex = prevNodeIndexes[currentNodeIndex];
+            currentNodeIndex = parent[currentNodeIndex];
         } while (currentNodeIndex != -1);
 
         path.emplace_back(fromY);
