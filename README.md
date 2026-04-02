@@ -3,7 +3,7 @@
 Finding a pathfinding solution on large grids by building quadtree, building graph, and A* search.
 
 ### Demo
-Web: https://tranqnhan.github.io/QuadtreeAstar/
+Web: qtas.tranhqnhan.org
 
 ### Current Implementation Progress
 - :white_check_mark: Build Quadtree
